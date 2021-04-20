@@ -1,0 +1,3 @@
+[submodule "submodules/touch-gamepad"]
+	path = submodules/touch-gamepad
+	url = git@github.com:nicolasblackburn/touch-gamepad.git
