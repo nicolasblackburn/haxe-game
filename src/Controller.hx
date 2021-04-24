@@ -1,3 +1,4 @@
+import js.html.Console;
 import gamepad.Gamepad;
 import coroutines.Coroutines;
 import gamepad.multi.MultiGamepad;
@@ -6,7 +7,6 @@ import events.Events;
 import physics.Physics;
 import geom.Rectangle;
 import js.Browser;
-import entities.HeroBehavior;
 
 class Controller {
   public var started = false;
@@ -31,6 +31,7 @@ class Controller {
     this.viewport = new Rectangle(0, 0, 0, 0);
     this.gamepad = new MultiGamepad();
     this.coroutines = new Coroutines();
+    this.model.setController(this);
   }
 
   public function start() {
@@ -50,7 +51,7 @@ class Controller {
           this.events.processQueue();
           this.coroutines.update();
 
-          var deltaTime = this.lastTime == null ? currentTime - this.lastTime : 0;
+          var deltaTime = this.lastTime == null ? 0 : currentTime - this.lastTime;
   
           this.fixedTimeLeft += deltaTime;
   

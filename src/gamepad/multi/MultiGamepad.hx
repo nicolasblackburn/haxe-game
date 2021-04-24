@@ -42,7 +42,6 @@ class MultiGamepad extends Emitter implements Gamepad {
   }
 
   private function onAxisReleased(event: AxisReleasedEvent) {
-    trace(event);
     this.axes[event.indexes[0]] = event.x;
     this.axes[event.indexes[1]] = event.y;
     this.emit(AxisReleased, event);

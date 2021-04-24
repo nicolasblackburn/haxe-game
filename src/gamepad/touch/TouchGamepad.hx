@@ -1,5 +1,6 @@
 package gamepad.touch;
 
+import js.html.Console;
 import gamepad.events.AxisReleasedEvent;
 import gamepad.events.AxisPressedEvent;
 import geom.Point2D;
@@ -28,8 +29,8 @@ class TouchGamepad extends Emitter implements Gamepad {
     this.options = options;
     this.surface = new TouchSurface({
       delayTouchStart: !this.options.dualHands ? true : false,
-      touchStartDistanceThresold: !this.options.dualHands ? 100 : 0,
-      tapTimeThresold: !this.options.dualHands ? 7 : 0
+      touchStartDistanceThresold: !this.options.dualHands ? 7 : 0,
+      tapTimeThresold: !this.options.dualHands ? 100 : 0
     });
     if (this.options.dualHands) {
       this.regions.push(new TouchRegion({
@@ -130,6 +131,7 @@ class TouchGamepad extends Emitter implements Gamepad {
   }
 
   private function discretizedAngle(n: Int, v: Point2D) {
-    return Math.floor((Math.atan2(v.y, v.x) / Math.PI / Math.PI * n + n + 1 / 2) % n);
+    var a = Math.atan2(v.y, v.x) / 2 / Math.PI * n + 1 / 2;
+    return Math.floor(a + (a < 0 ? n : 0));
   }
 }

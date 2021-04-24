@@ -1,15 +1,16 @@
 package physics;
 
-class Physics {
-  private var model: Model;
+import js.html.Console;
 
-  public function new(model: Model) {
+class Physics {
+  private var model: PhysicsModel;
+
+  public function new(model: PhysicsModel) {
     this.model = model;
   }
 
   public function update(deltaTime: Float) {
-    var bodies = [cast (this.model.hero, Body)].concat(cast this.model.enemies);
-    for (body in bodies) {
+    for (body in this.model.getBodies()) {
       body.velocity.add(body.acceleration);
       body.position.add(body.velocity);
     }

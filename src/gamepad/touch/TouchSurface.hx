@@ -1,5 +1,6 @@
 package gamepad.touch;
 
+import js.html.Console;
 import gamepad.touch.events.TouchEndOutsideEvent;
 import gamepad.touch.events.TapReleasedEvent;
 import gamepad.touch.events.TouchEndEvent;
@@ -48,28 +49,23 @@ class TouchSurface extends Emitter {
   private function onPointerMove(event: PointerEvent) {
     var touch = this.findClosest({x: event.x, y: event.y}, this.touches);
     if (touch != null) {
-      for (touch2 in this.touches) {
-        if (touch2.id == touch.id) {
-          touch.moveX = touch.x - touch2.x;
-          touch.moveY = touch.y - touch2.y;
-          touch2.x = touch.x;
-          touch2.y = touch.y;
-          touch2.moveX = touch.moveX;
-          touch2.moveY = touch.moveY;
-          
-          if (
-            !touch2.started && 
-            this.distanceSquared({x: touch2.x, y :touch2.y}, {x: touch2.startX, y: touch2.startY}) >= this.distanceThresholdSquared
-          ) {
-            touch2.started = true;
-            this.emit(TouchEvent.TouchStart, new TouchStartEvent(touch, this.touches));
-          }
+      touch.moveX = event.x - touch.startX;
+      touch.moveY = event.y - touch.startY;
 
-          break;
-        } 
+      if (touch.moveX == 0 && touch.moveY == 0) {
+        Console.log(event.x, event.y, touch.x, touch.y, touch);
       }
-          
-      if (touch.started) {
+
+      touch.x = event.x;
+      touch.y = event.y;
+      
+      if (
+        !touch.started && 
+        this.distanceSquared({x: touch.x, y :touch.y}, {x: touch.startX, y: touch.startY}) >= this.distanceThresholdSquared
+      ) {
+        touch.started = true;
+        this.emit(TouchEvent.TouchStart, new TouchStartEvent(touch, this.touches));
+      } else if (touch.started) {
         this.emit(TouchEvent.TouchMove, new TouchMoveEvent(touch, this.touches));
       }
     }
@@ -78,24 +74,13 @@ class TouchSurface extends Emitter {
   private function onPointerUp(event: PointerEvent) {
     var touch = this.findClosest({x: event.x, y: event.y}, this.touches);
     if (touch != null) {
-      var oldTouch = null;
-      var changed = [];
-      for (touch2 in this.touches) {
-        if (touch2.id != touch.id) {
-          changed.push(touch2);
-        } else {
-          oldTouch = touch2;
-        }
-      }
-      this.touches = changed;
+      this.touches.splice(this.touches.indexOf(touch), 1);
 
       if (touch.started) {
         this.emit(TouchEvent.TouchEnd, new TouchEndEvent(touch, this.touches));
       } else {
         if (!touch.pressed) {
-          if (oldTouch != null) {
-            oldTouch.pressed = true;
-          }
+          touch.pressed = true;
           this.emit(TouchEvent.TapPressed, new TapPressedEvent(touch, this.touches));
         }
         this.emit(TouchEvent.TapReleased, new TapReleasedEvent(touch, this.touches));
@@ -106,13 +91,7 @@ class TouchSurface extends Emitter {
   private function onPointerMoveOutside(event: PointerEvent) {
     var touch = this.findClosest({x: event.x, y: event.y}, this.touches);
     if (touch != null) {
-      var changed = [];
-      for (touch2 in this.touches) {
-        if (touch2.id != touch.id) {
-          changed.push(touch2);
-        }
-      }
-      this.touches = changed;
+      this.touches.splice(this.touches.indexOf(touch), 1);
 
       if (touch.started) {
         this.emit(TouchEvent.TouchEndOutside, new TouchEndOutsideEvent(touch, this.touches));
@@ -141,11 +120,7 @@ class TouchSurface extends Emitter {
       var dy = touch.y - touch2.y;
       var dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < minDist) {
-        closest.x = touch.x;
-        closest.y = touch.y;
-        closest.id = touch2.id;
-        closest.started = touch2.started;
-        closest.pressed = touch2.pressed;
+        closest = touch2;
         minDist = dist;
       }
     }

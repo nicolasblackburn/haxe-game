@@ -1,18 +1,31 @@
+import js.html.Console;
+import physics.Body;
+import physics.PhysicsModel;
 import geom.Rectangle;
 import geom.RectangleOperations.*;
 import entities.World;
 import entities.Enemy;
 import entities.Hero;
 
-class Model {
+class Model implements PhysicsModel {
   public var world: World;
   public var hero: Hero;
   public var enemies: Array<Enemy>;
+
+  private var controller: Controller;
 
   public function new() {
     this.world = new World();
     this.hero = new Hero();
     this.enemies = [for (_ in 0...10) new Enemy()];
+  }
+
+  public function setController(controller: Controller) {
+    this.controller = controller;
+  }
+
+  public function getBodies() {
+    return [cast (this.hero, Body)].concat(cast this.enemies);
   }
 
   public function init() {
@@ -56,6 +69,8 @@ class Model {
   }
 
   public function update(deltaTime: Float) {
-
+    var gamepad = this.controller.gamepad;
+  
+    this.hero.velocity.set(gamepad.axes[0], gamepad.axes[1]).multiply(this.hero.maxSpeed);
   }
 }

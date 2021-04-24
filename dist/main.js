@@ -19,6 +19,7 @@ var Controller = function(model,view) {
 	this.viewport = new geom_Rectangle(0,0,0,0);
 	this.gamepad = new gamepad_multi_MultiGamepad();
 	this.coroutines = new coroutines_Coroutines();
+	this.model.setController(this);
 };
 Controller.__name__ = true;
 Controller.prototype = {
@@ -37,7 +38,7 @@ Controller.prototype = {
 					}
 					_gthis.events.processQueue();
 					_gthis.coroutines.update();
-					var deltaTime = _gthis.lastTime == null ? currentTime - _gthis.lastTime : 0;
+					var deltaTime = _gthis.lastTime == null ? 0 : currentTime - _gthis.lastTime;
 					_gthis.fixedTimeLeft += deltaTime;
 					while(_gthis.fixedTimeLeft >= _gthis.fixedTimeStep) {
 						_gthis.fixedUpdate(_gthis.fixedTimeStep);
@@ -109,6 +110,12 @@ Main.main = function() {
 	window.controller = controller;
 };
 Math.__name__ = true;
+var physics_PhysicsModel = function() { };
+physics_PhysicsModel.__name__ = true;
+physics_PhysicsModel.__isInterface__ = true;
+physics_PhysicsModel.prototype = {
+	__class__: physics_PhysicsModel
+};
 var Model = function() {
 	this.world = new entities_World();
 	this.hero = new entities_Hero();
@@ -126,8 +133,15 @@ var Model = function() {
 	this.enemies = _g;
 };
 Model.__name__ = true;
+Model.__interfaces__ = [physics_PhysicsModel];
 Model.prototype = {
-	init: function() {
+	setController: function(controller) {
+		this.controller = controller;
+	}
+	,getBodies: function() {
+		return [js_Boot.__cast(this.hero , physics_Body)].concat(this.enemies);
+	}
+	,init: function() {
 		var tileSize = this.world.tileSize;
 		var gridSize = this.world.gridSize;
 		var tmp = ((Math.random() * 4 | 0) + 5) * tileSize.x;
@@ -160,6 +174,8 @@ Model.prototype = {
 		}
 	}
 	,update: function(deltaTime) {
+		var gamepad = this.controller.gamepad;
+		this.hero.velocity.set(gamepad.axes[0],gamepad.axes[1]).multiply(this.hero.maxSpeed);
 	}
 	,__class__: Model
 };
@@ -500,7 +516,7 @@ physics_Body.prototype = {
 	__class__: physics_Body
 };
 var entities_Enemy = function() {
-	this.walkSpeed = 0.0666666666666666657;
+	this.maxSpeed = 0.0666666666666666657;
 	this.bounds = new geom_Rectangle(0,0,16,16);
 	this.acceleration = new geom_Point2D(0,0);
 	this.velocity = new geom_Point2D(0,0);
@@ -514,7 +530,7 @@ entities_Enemy.prototype = {
 	__class__: entities_Enemy
 };
 var entities_Hero = function() {
-	this.walkSpeed = 0.0666666666666666657;
+	this.maxSpeed = 0.1;
 	this.bounds = new geom_Rectangle(0,0,16,16);
 	this.acceleration = new geom_Point2D(0,0);
 	this.velocity = new geom_Point2D(0,0);
@@ -526,20 +542,6 @@ entities_Hero.__name__ = true;
 entities_Hero.__interfaces__ = [physics_Body];
 entities_Hero.prototype = {
 	__class__: entities_Hero
-};
-var entities_HeroBehavior = function(gamepad,hero) {
-	this.gamepad = gamepad;
-	this.hero = hero;
-};
-entities_HeroBehavior.__name__ = true;
-entities_HeroBehavior.__interfaces__ = [coroutines_Coroutine];
-entities_HeroBehavior.prototype = {
-	next: function() {
-		this.hero.velocity.x = this.gamepad.axes[0] * this.hero.walkSpeed;
-		this.hero.velocity.y = this.gamepad.axes[1] * this.hero.walkSpeed;
-		return new coroutines_Result(false);
-	}
-	,__class__: entities_HeroBehavior
 };
 var entities_World = function() {
 	this.tileIds = [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1];
@@ -877,7 +879,6 @@ gamepad_multi_MultiGamepad.prototype = $extend(events_Emitter.prototype,{
 		this.emit("axispressed",event);
 	}
 	,onAxisReleased: function(event) {
-		console.log("src/gamepad/multi/MultiGamepad.hx:45:",event);
 		this.axes[event.indexes[0]] = event.x;
 		this.axes[event.indexes[1]] = event.y;
 		this.emit("axisreleased",event);
@@ -901,7 +902,7 @@ var gamepad_touch_TouchGamepad = function(options) {
 	var _gthis = this;
 	events_Emitter.call(this);
 	this.options = options;
-	this.surface = new gamepad_touch_TouchSurface({ delayTouchStart : !this.options.dualHands, touchStartDistanceThresold : !this.options.dualHands ? 100 : 0, tapTimeThresold : !this.options.dualHands ? 7 : 0});
+	this.surface = new gamepad_touch_TouchSurface({ delayTouchStart : !this.options.dualHands, touchStartDistanceThresold : !this.options.dualHands ? 7 : 0, tapTimeThresold : !this.options.dualHands ? 100 : 0});
 	if(this.options.dualHands) {
 		this.regions.push(new gamepad_touch_TouchRegion({ surface : this.surface, region : new geom_Rectangle(0,0,0.5,1)}));
 		this.regions.push(new gamepad_touch_TouchRegion({ surface : this.surface, region : new geom_Rectangle(0.5,0,0.5,1)}));
@@ -1021,7 +1022,8 @@ gamepad_touch_TouchGamepad.prototype = $extend(events_Emitter.prototype,{
 		}
 	}
 	,discretizedAngle: function(n,v) {
-		return Math.floor((Math.atan2(v.y,v.x) / Math.PI / Math.PI * n + n + 0.5) % n);
+		var a = Math.atan2(v.y,v.x) / 2 / Math.PI * n + 0.5;
+		return Math.floor(a + (a < 0 ? n : 0));
 	}
 	,__class__: gamepad_touch_TouchGamepad
 });
@@ -1174,26 +1176,17 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 	,onPointerMove: function(event) {
 		var touch = this.findClosest({ x : event.x, y : event.y},this.touches);
 		if(touch != null) {
-			var _g = 0;
-			var _g1 = this.touches;
-			while(_g < _g1.length) {
-				var touch2 = _g1[_g];
-				++_g;
-				if(touch2.id == touch.id) {
-					touch.moveX = touch.x - touch2.x;
-					touch.moveY = touch.y - touch2.y;
-					touch2.x = touch.x;
-					touch2.y = touch.y;
-					touch2.moveX = touch.moveX;
-					touch2.moveY = touch.moveY;
-					if(!touch2.started && this.distanceSquared({ x : touch2.x, y : touch2.y},{ x : touch2.startX, y : touch2.startY}) >= this.distanceThresholdSquared) {
-						touch2.started = true;
-						this.emit("touchstart",new gamepad_touch_events_TouchStartEvent(touch,this.touches));
-					}
-					break;
-				}
+			touch.moveX = event.x - touch.startX;
+			touch.moveY = event.y - touch.startY;
+			if(touch.moveX == 0 && touch.moveY == 0) {
+				console.log(event.x,event.y,touch.x,touch.y,touch);
 			}
-			if(touch.started) {
+			touch.x = event.x;
+			touch.y = event.y;
+			if(!touch.started && this.distanceSquared({ x : touch.x, y : touch.y},{ x : touch.startX, y : touch.startY}) >= this.distanceThresholdSquared) {
+				touch.started = true;
+				this.emit("touchstart",new gamepad_touch_events_TouchStartEvent(touch,this.touches));
+			} else if(touch.started) {
 				this.emit("touchmove",new gamepad_touch_events_TouchMoveEvent(touch,this.touches));
 			}
 		}
@@ -1201,27 +1194,12 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 	,onPointerUp: function(event) {
 		var touch = this.findClosest({ x : event.x, y : event.y},this.touches);
 		if(touch != null) {
-			var oldTouch = null;
-			var changed = [];
-			var _g = 0;
-			var _g1 = this.touches;
-			while(_g < _g1.length) {
-				var touch2 = _g1[_g];
-				++_g;
-				if(touch2.id != touch.id) {
-					changed.push(touch2);
-				} else {
-					oldTouch = touch2;
-				}
-			}
-			this.touches = changed;
+			this.touches.splice(this.touches.indexOf(touch),1);
 			if(touch.started) {
 				this.emit("touchend",new gamepad_touch_events_TouchEndEvent(touch,this.touches));
 			} else {
 				if(!touch.pressed) {
-					if(oldTouch != null) {
-						oldTouch.pressed = true;
-					}
+					touch.pressed = true;
 					this.emit("tappressed",new gamepad_touch_events_TapPressedEvent(touch,this.touches));
 				}
 				this.emit("tapreleased",new gamepad_touch_events_TapReleasedEvent(touch,this.touches));
@@ -1231,17 +1209,7 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 	,onPointerMoveOutside: function(event) {
 		var touch = this.findClosest({ x : event.x, y : event.y},this.touches);
 		if(touch != null) {
-			var changed = [];
-			var _g = 0;
-			var _g1 = this.touches;
-			while(_g < _g1.length) {
-				var touch2 = _g1[_g];
-				++_g;
-				if(touch2.id != touch.id) {
-					changed.push(touch2);
-				}
-			}
-			this.touches = changed;
+			this.touches.splice(this.touches.indexOf(touch),1);
 			if(touch.started) {
 				this.emit("touchendoutside",new gamepad_touch_events_TouchEndOutsideEvent(touch,this.touches));
 			}
@@ -1270,11 +1238,7 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 			var dy = touch.y - touch2.y;
 			var dist = Math.sqrt(dx * dx + dy * dy);
 			if(dist < minDist) {
-				closest.x = touch.x;
-				closest.y = touch.y;
-				closest.id = touch2.id;
-				closest.started = touch2.started;
-				closest.pressed = touch2.pressed;
+				closest = touch2;
 				minDist = dist;
 			}
 		}
@@ -1349,12 +1313,16 @@ gamepad_touch_events_TouchStartEvent.prototype = $extend(gamepad_touch_events_To
 	__class__: gamepad_touch_events_TouchStartEvent
 });
 var geom_Point2D = function(x,y) {
-	this.x = x;
-	this.y = y;
+	this.set(x,y);
 };
 geom_Point2D.__name__ = true;
 geom_Point2D.prototype = {
-	equal: function(v) {
+	set: function(x,y) {
+		this.x = x;
+		this.y = y;
+		return this;
+	}
+	,equal: function(v) {
 		if(this.x == v.x) {
 			return this.y == v.y;
 		} else {
@@ -1368,6 +1336,11 @@ geom_Point2D.prototype = {
 		v.x = this.x;
 		v.y = this.y;
 		return v;
+	}
+	,copyFrom: function(v) {
+		this.x = v.x;
+		this.y = v.y;
+		return this;
 	}
 	,add: function(v) {
 		this.x += v.x;
@@ -1795,10 +1768,10 @@ var physics_Physics = function(model) {
 physics_Physics.__name__ = true;
 physics_Physics.prototype = {
 	update: function(deltaTime) {
-		var bodies = [js_Boot.__cast(this.model.hero , physics_Body)].concat(this.model.enemies);
 		var _g = 0;
-		while(_g < bodies.length) {
-			var body = bodies[_g];
+		var _g1 = this.model.getBodies();
+		while(_g < _g1.length) {
+			var body = _g1[_g];
 			++_g;
 			body.velocity.add(body.acceleration);
 			body.position.add(body.velocity);
