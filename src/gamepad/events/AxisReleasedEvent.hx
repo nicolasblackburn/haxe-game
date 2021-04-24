@@ -1,4 +1,4 @@
-package gamepad;
+package gamepad.events;
 
 class AxisReleasedEvent extends AxisEvent {
   public function new(indexes: Array<Int>) {

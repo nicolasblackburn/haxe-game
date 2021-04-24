@@ -1,4 +1,4 @@
-package gamepad;
+package gamepad.events;
 
 class AxisPressedEvent extends AxisEvent {
   public function new(x: Float, y: Float, indexes: Array<Int>) {

@@ -18,24 +18,30 @@ class Rectangle {
     this.height = height;
   }
 
-  public function copyTo(rectangle: Rectangle) {
-    rectangle.x = this.x;
-    rectangle.y = this.y;
-    rectangle.width = this.width;
-    rectangle.height = this.height;
-    return rectangle;
+  public function clone() {
+    return new Rectangle(this.x, this.y, this.width, this.height);
   }
 
-  public static function equal(r1: Rectangle, r2: Rectangle) {
-    return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width && r1.height == r2.height;
+  public function copyTo(r: Rectangle) {
+    r.x = this.x;
+    r.y = this.y;
+    r.width = this.width;
+    r.height = this.height;
+    return r;
   }
 
-  public static function translate(rectangle: Rectangle, translation: Point2D) {
-    return new Rectangle(rectangle.x + translation.x, rectangle.y + translation.y, rectangle.width, rectangle.height);
+  public function equal(r: Rectangle) {
+    return this.x == r.x && this.y == r.y && this.width == r.width && this.height == r.height;
   }
 
-  public static function overlap(r1: Rectangle, r2: Rectangle) {
-    return r1.x < r2.x + r2.width && r2.x < r1.x + r1.width &&
-    r1.y < r2.y + r2.height && r2.y < r1.y + r1.height;
+  public function translate(v: Point2D) {
+    this.x += v.x;
+    this.y += v.y;
+    return this;
+  }
+
+  public function overlap(r: Rectangle) {
+    return this.x < r.x + r.width && r.x < this.x + this.width &&
+    this.y < r.y + r.height && r.y < this.y + this.height;
   }
 }

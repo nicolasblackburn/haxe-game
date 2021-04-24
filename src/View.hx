@@ -51,7 +51,7 @@ class View {
     Browser.document.body.appendChild(this.root);
   }
 
-  public function update() {
+  public function update(deltaTime: Float) {
     this.root.style.visibility = this.visible ? "" : "hidden";
 
     this.hero.style.visibility = this.model.hero.active ? "" : "hidden";

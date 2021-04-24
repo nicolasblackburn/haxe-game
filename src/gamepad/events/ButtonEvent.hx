@@ -1,4 +1,4 @@
-package gamepad;
+package gamepad.events;
 
 import events.Event;
 

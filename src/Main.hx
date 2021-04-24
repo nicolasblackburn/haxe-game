@@ -1,5 +1,8 @@
-import gamepad.MultiGamepad;
+import geom.Rectangle;
+import gamepad.touch.events.TouchEvent;
 import js.Browser;
+import gamepad.touch.TouchSurface;
+import gamepad.touch.TouchRegion;
 
 class Main {
   public static var model: Model;

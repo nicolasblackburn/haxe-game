@@ -9,38 +9,52 @@ class Point2D {
     this.y = y;
   }
 
+  public function equal(v: Point2D) {
+    return this.x == v.x && this.y == v.y;
+  }
+
+  public function clone() {
+    return new Point2D(this.x, this.y);
+  }
+
   public function copyTo(v: Point2D) {
     v.x = this.x;
     v.y = this.y;
     return v;
   }
 
-  public static function dot(u: Point2D, v: Point2D) {
-    return u.x * v.x + u.y * v.y;
+  public function add(v: Point2D) {
+    this.x += v.x;
+    this.y += v.y;
+    return this;
   }
 
-  public static function add(u: Point2D, v: Point2D) {
-    return new Point2D(u.x + v.x, u.y + v.y);
+  public function subtract(v: Point2D) {
+    this.x -= v.x;
+    this.y -= v.y;
+    return this;
   }
 
-  public static function subtract(u: Point2D, v: Point2D) {
-    return new Point2D(u.x - v.x, u.y - v.y);
+  public function multiply(a: Float) {
+    this.x *= a;
+    this.y *= a;
+    return this;
   }
 
-  public static function multiply(u: Point2D, a: Float) {
-    return new Point2D(u.x * a, u.y * a);
+  public function dot(v: Point2D) {
+    return this.x * v.x + this.y * v.y;
   }
 
-  public static function norm(v: Point2D) {
-    return Math.sqrt(Point2D.dot(v, v));
+  public function norm() {
+    return Math.sqrt(this.dot(this));
   }
 
-  public static function normalize(v: Point2D) {
-    var norm = Point2D.norm(v);
+  public function normalize() {
+    var norm = this.norm();
     if (norm != 0) {
-      return Point2D.multiply(v, 1 / norm);
+      return this.multiply(1 / norm);
     } else {
-      return new Point2D(0, 0);
+      return this;
     }
   }
 }

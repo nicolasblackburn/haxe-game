@@ -1,8 +1,12 @@
-package gamepad;
+package gamepad.keyboard;
 
+import gamepad.events.ButtonReleasedEvent;
+import gamepad.events.AxisReleasedEvent;
+import gamepad.events.ButtonPressedEvent;
+import gamepad.events.AxisPressedEvent;
 import js.Browser;
-import events.Emitter;
 import js.html.KeyboardEvent;
+import events.Emitter;
 
 private typedef Keymap = {
   var type: String;
@@ -10,11 +14,11 @@ private typedef Keymap = {
   var value: Float;
 }
 
-class KeyboardGamepad extends Emitter {
+class KeyboardGamepad extends Emitter implements Gamepad {
   private var mappings: Map<String, Keymap> = [
-    "ArrowUp" => {type: "axis", index: 0, value: 1.0},
+    "ArrowUp" => {type: "axis", index: 1, value: -1.0},
     "ArrowRight" => {type: "axis", index: 0, value: 1.0},
-    "ArrowDown" => {type: "axis", index: 0, value: -1.0},
+    "ArrowDown" => {type: "axis", index: 1, value: 1.0},
     "ArrowLeft" => {type: "axis", index: 0, value: -1.0},
     "a" => {type: "button", index: 0, value: 1.0}
   ];

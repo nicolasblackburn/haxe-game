@@ -1,4 +1,4 @@
-package gamepad;
+package gamepad.events;
 
 class ButtonPressedEvent extends ButtonEvent {
   public function new(value: Float, index: Int) {

@@ -1,4 +1,5 @@
 import geom.Rectangle;
+import geom.RectangleOperations.*;
 import entities.World;
 import entities.Enemy;
 import entities.Hero;
@@ -45,12 +46,16 @@ class Model {
       enemy.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
       * tileSize.y * 2;
   
-      while (!this.world.canMove(enemy, enemy.position) || Rectangle.overlap(heroRegion, enemy.bounds)) {
+      while (!this.world.canMove(enemy, enemy.position) || overlap(heroRegion, enemy.bounds)) {
         enemy.position.x = (Std.int(Math.random() * (gridSize.x / 2 - 2)) + 1) 
         * tileSize.x * 2;
         enemy.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
         * tileSize.y * 2;
       }
     }
+  }
+
+  public function update(deltaTime: Float) {
+
   }
 }

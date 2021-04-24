@@ -2,8 +2,9 @@ package entities;
 
 import geom.Rectangle;
 import geom.Point2D;
+import physics.Body;
 
-class Hero {
+class Hero implements Body {
   public var active = true;
   public var name = "hero";
   public var position = new Point2D(0, 0);
