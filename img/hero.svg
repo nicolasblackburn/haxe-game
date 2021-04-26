@@ -1,0 +1,5 @@
+<svg version="1.1"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <ellipse class="hero" rx="8" ry="8" cx="8" cy="8" fill="#3366cc" />
+</svg>
