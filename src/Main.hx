@@ -10,11 +10,11 @@ class Main {
 
   static function main() {
     var model = new Model();
-    var controller = new Controller(model, new View(model));
+    var controller = Controller.createInstance(model, new View(model));
     controller.start();
 
     // For debuging
-    (cast Browser.window).controller = controller;
+    (cast Browser.window).Controller = Controller;
   }
 }
 

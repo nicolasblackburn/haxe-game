@@ -19,9 +19,19 @@ var Controller = function(model,view) {
 	this.viewport = new geom_Rectangle(0,0,0,0);
 	this.gamepad = new gamepad_multi_MultiGamepad();
 	this.coroutines = new coroutines_Coroutines();
+	this.loader = new loader_Loader();
 	this.model.setController(this);
 };
 Controller.__name__ = true;
+Controller.createInstance = function(model,view) {
+	if(Controller.instance == null) {
+		Controller.instance = new Controller(model,view);
+	}
+	return Controller.instance;
+};
+Controller.getInstance = function() {
+	return Controller.instance;
+};
 Controller.prototype = {
 	start: function() {
 		var _gthis = this;
@@ -86,6 +96,18 @@ Controller.prototype = {
 };
 var HxOverrides = function() { };
 HxOverrides.__name__ = true;
+HxOverrides.substr = function(s,pos,len) {
+	if(len == null) {
+		len = s.length;
+	} else if(len < 0) {
+		if(pos == 0) {
+			len = s.length + len;
+		} else {
+			return "";
+		}
+	}
+	return s.substr(pos,len);
+};
 HxOverrides.remove = function(a,obj) {
 	var i = a.indexOf(obj);
 	if(i == -1) {
@@ -105,9 +127,9 @@ var Main = function() { };
 Main.__name__ = true;
 Main.main = function() {
 	var model = new Model();
-	var controller = new Controller(model,new View(model));
+	var controller = Controller.createInstance(model,new View(model));
 	controller.start();
-	window.controller = controller;
+	window.Controller = Controller;
 };
 Math.__name__ = true;
 var physics_PhysicsModel = function() { };
@@ -137,9 +159,6 @@ Model.__interfaces__ = [physics_PhysicsModel];
 Model.prototype = {
 	setController: function(controller) {
 		this.controller = controller;
-	}
-	,getBodies: function() {
-		return [js_Boot.__cast(this.hero , physics_Body)].concat(this.enemies);
 	}
 	,init: function() {
 		var tileSize = this.world.tileSize;
@@ -176,6 +195,79 @@ Model.prototype = {
 	,update: function(deltaTime) {
 		var gamepad = this.controller.gamepad;
 		this.hero.velocity.set(gamepad.axes[0],gamepad.axes[1]).multiply(this.hero.maxSpeed);
+	}
+	,getBodies: function() {
+		if(this.hero.active) {
+			var tmp = [js_Boot.__cast(this.hero , physics_Body)];
+			var _g = [];
+			var _g1 = 0;
+			var _g2 = this.enemies;
+			while(_g1 < _g2.length) {
+				var v = _g2[_g1];
+				++_g1;
+				if(v.active) {
+					_g.push(v);
+				}
+			}
+			return tmp.concat(_g);
+		} else {
+			var _g3 = [];
+			var _g11 = 0;
+			var _g21 = this.enemies;
+			while(_g11 < _g21.length) {
+				var v1 = _g21[_g11];
+				++_g11;
+				if(v1.active) {
+					_g3.push(v1);
+				}
+			}
+			return _g3;
+		}
+	}
+	,move: function(body,position) {
+		var displacement = position.clone().subtract(body.position);
+		body.position.x += displacement.x;
+		if(!this.world.canMove(body,body.position)) {
+			this.resolveCollisionX(body,body.velocity);
+		}
+		body.position.y += displacement.y;
+		if(!this.world.canMove(body,body.position)) {
+			this.resolveCollisionY(body,body.velocity);
+		}
+	}
+	,resolveCollisionX: function(body,displacement) {
+		var topCorner = displacement.x >= 0 ? body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y)).add(new geom_Point2D(body.bounds.width,0)) : body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y));
+		var bottomCorner = topCorner.clone().add(new geom_Point2D(0,body.bounds.height));
+		var correctionX = displacement.x >= 0 ? -(body.position.x + body.bounds.x + body.bounds.width) % this.world.tileSize.x : this.world.tileSize.x - (body.position.x + body.bounds.x) % this.world.tileSize.x;
+		body.position.x += correctionX;
+		if(!this.world.canMovePoint(topCorner) && this.world.canMovePoint(bottomCorner)) {
+			var nudgeY = Math.min(Math.abs(body.velocity.x) / Math.sqrt(2),this.world.tileSize.y - topCorner.y % this.world.tileSize.y);
+			if(nudgeY > displacement.y) {
+				body.velocity.y = nudgeY;
+			}
+		} else if(this.world.canMovePoint(topCorner) && !this.world.canMovePoint(bottomCorner)) {
+			var nudgeY1 = Math.max(-Math.abs(body.velocity.x) / Math.sqrt(2),-bottomCorner.y % this.world.tileSize.y);
+			if(nudgeY1 < displacement.y) {
+				body.velocity.y = nudgeY1;
+			}
+		}
+	}
+	,resolveCollisionY: function(body,displacement) {
+		var leftCorner = displacement.y >= 0 ? body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y)).add(new geom_Point2D(0,body.bounds.height)) : body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y));
+		var rightCorner = leftCorner.clone().add(new geom_Point2D(body.bounds.width,0));
+		var correctionY = displacement.y >= 0 ? -(body.position.y + body.bounds.y + body.bounds.height) % this.world.tileSize.y : this.world.tileSize.y - (body.position.y + body.bounds.y) % this.world.tileSize.y;
+		body.position.y += correctionY;
+		if(!this.world.canMovePoint(leftCorner) && this.world.canMovePoint(rightCorner)) {
+			var nudgeX = Math.min(Math.abs(body.velocity.y) / Math.sqrt(2),this.world.tileSize.x - leftCorner.x % this.world.tileSize.x);
+			if(nudgeX > displacement.x) {
+				body.position.x += nudgeX;
+			}
+		} else if(this.world.canMovePoint(leftCorner) && !this.world.canMovePoint(rightCorner)) {
+			var nudgeX1 = Math.min(-Math.abs(body.velocity.y) / Math.sqrt(2),-rightCorner.x % this.world.tileSize.x);
+			if(nudgeX1 < displacement.x) {
+				body.position.x += nudgeX1;
+			}
+		}
 	}
 	,__class__: Model
 };
@@ -553,12 +645,12 @@ var entities_World = function() {
 };
 entities_World.__name__ = true;
 entities_World.prototype = {
-	canMove: function(entity,position) {
-		var xStart = position.x + entity.bounds.x;
-		var xEnd = xStart + entity.bounds.width;
+	canMove: function(body,position) {
+		var xStart = position.x + body.bounds.x;
+		var xEnd = xStart + body.bounds.width;
 		var xEndInclusive = !math_MathExtensions.floatEqual(Math,0,math_MathExtensions.modulo(Math,xEnd,this.tileSize.x));
-		var yStart = position.y + entity.bounds.y;
-		var yEnd = yStart + entity.bounds.height;
+		var yStart = position.y + body.bounds.y;
+		var yEnd = yStart + body.bounds.height;
 		var yEndInclusive = !math_MathExtensions.floatEqual(Math,0,math_MathExtensions.modulo(Math,yEnd,this.tileSize.y));
 		var x = xStart;
 		while(xEndInclusive ? x <= xEnd : x < xEnd) {
@@ -572,6 +664,9 @@ entities_World.prototype = {
 			x += this.tileSize.x;
 		}
 		return true;
+	}
+	,canMovePoint: function(position) {
+		return this.getTileIdAt(position.x,position.y) <= 0;
 	}
 	,getTileIdAt: function(x,y) {
 		var xIndex = x / this.tileSize.x | 0;
@@ -1322,6 +1417,14 @@ geom_Point2D.prototype = {
 		this.y = y;
 		return this;
 	}
+	,setX: function(x) {
+		this.x = x;
+		return this;
+	}
+	,setY: function(y) {
+		this.y = y;
+		return this;
+	}
 	,equal: function(v) {
 		if(this.x == v.x) {
 			return this.y == v.y;
@@ -1534,6 +1637,13 @@ var js__$Boot_HaxeError = function(val) {
 	}
 };
 js__$Boot_HaxeError.__name__ = true;
+js__$Boot_HaxeError.wrap = function(val) {
+	if(((val) instanceof Error)) {
+		return val;
+	} else {
+		return new js__$Boot_HaxeError(val);
+	}
+};
 js__$Boot_HaxeError.__super__ = Error;
 js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 	__class__: js__$Boot_HaxeError
@@ -1747,6 +1857,110 @@ js_Boot.__isNativeObj = function(o) {
 js_Boot.__resolveNativeClass = function(name) {
 	return $global[name];
 };
+var loader_Loader = function() {
+	this.queue = [];
+	this.cache = new haxe_ds_StringMap();
+	events_Emitter.call(this);
+};
+loader_Loader.__name__ = true;
+loader_Loader.__super__ = events_Emitter;
+loader_Loader.prototype = $extend(events_Emitter.prototype,{
+	add: function(id,url,type) {
+		var _this = this.cache;
+		var found = __map_reserved[id] != null ? _this.existsReserved(id) : _this.h.hasOwnProperty(id);
+		if(!found) {
+			var _g = 0;
+			var _g1 = this.queue;
+			while(_g < _g1.length) {
+				var resource = _g1[_g];
+				++_g;
+				if(resource.id == id) {
+					found = true;
+					break;
+				}
+			}
+		}
+		if(!found) {
+			if(type == null) {
+				type = HxOverrides.substr(url,url.lastIndexOf(".") + 1,null);
+			}
+			this.queue.push({ id : id, type : type, url : url});
+		}
+		return this;
+	}
+	,load: function() {
+		var _gthis = this;
+		this.emit("loadstart");
+		var totalCount = this.queue.length;
+		var count = 0;
+		var helper = null;
+		helper = function(queue) {
+			if(queue.length == 0) {
+				_gthis.emit("loadcomplete");
+				return Promise.resolve([]);
+			} else {
+				var query = queue[0];
+				return window.fetch(query.url).then(function(response) {
+					return _gthis.parseResponse(query,response);
+				}).then(function(data) {
+					var resource = { id : query.id, type : query.type, url : query.url, data : data};
+					var k = resource.id;
+					var _this = _gthis.cache;
+					if(__map_reserved[k] != null) {
+						_this.setReserved(k,resource);
+					} else {
+						_this.h[k] = resource;
+					}
+					var helper1 = count += 1;
+					_gthis.emit("loadprogress",helper1 / totalCount);
+					var helper2 = queue.slice(1);
+					return helper(helper2).then(function(rest) {
+						return [resource].concat(rest);
+					});
+				},function(error) {
+					throw js__$Boot_HaxeError.wrap(error);
+				});
+			}
+		};
+		var tmp = this.queue.splice(0,this.queue.length);
+		return helper(tmp);
+	}
+	,parseResponse: function(query,response) {
+		switch(query.type) {
+		case "bmp":case "image":case "jpeg":case "jpg":case "png":case "webp":
+			return this.parseImage(query,response);
+		case "json":
+			return this.parseJson(query,response);
+		case "svg":
+			return this.parseSvg(query,response);
+		case "text":
+			return this.parseText(query,response);
+		default:
+			return this.parseText(query,response);
+		}
+	}
+	,parseSvg: function(query,response) {
+		return response.text().then(function(svg) {
+			var tpl = window.document.createElement("template");
+			tpl.innerHTML = svg;
+			return js_Boot.__cast(tpl.content.children[0] , SVGSVGElement);
+		});
+	}
+	,parseImage: function(query,response) {
+		var img = window.document.createElement("img");
+		img.src = query.url;
+		return img;
+	}
+	,parseText: function(query,response) {
+		return response.text();
+	}
+	,parseJson: function(query,response) {
+		return response.json();
+	}
+	,__class__: loader_Loader
+});
+var loader_events_LoaderEvent = function() { };
+loader_events_LoaderEvent.__name__ = true;
 var math_MathExtensions = function() { };
 math_MathExtensions.__name__ = true;
 math_MathExtensions.floatEqual = function(cl,x,y,epsilon) {
@@ -1774,8 +1988,20 @@ physics_Physics.prototype = {
 			var body = _g1[_g];
 			++_g;
 			body.velocity.add(body.acceleration);
-			body.position.add(body.velocity);
+			this.model.move(body,body.position.clone().add(body.velocity));
 		}
+	}
+	,canMoveAbove: function() {
+		return false;
+	}
+	,canMoveBelow: function() {
+		return false;
+	}
+	,canMoveLeft: function() {
+		return false;
+	}
+	,canMoveRight: function() {
+		return false;
 	}
 	,__class__: physics_Physics
 };
@@ -1808,5 +2034,8 @@ gamepad_touch_events_TouchEvent.TouchEnd = "touchend";
 gamepad_touch_events_TouchEvent.TouchEndOutside = "touchendoutside";
 gamepad_touch_events_TouchEvent.TapPressed = "tappressed";
 gamepad_touch_events_TouchEvent.TapReleased = "tapreleased";
+loader_events_LoaderEvent.LoadStart = "loadstart";
+loader_events_LoaderEvent.LoadProgress = "loadprogress";
+loader_events_LoaderEvent.LoadComplete = "loadcomplete";
 Main.main();
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

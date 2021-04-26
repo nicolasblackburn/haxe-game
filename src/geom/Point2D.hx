@@ -14,6 +14,16 @@ class Point2D {
     return this;
   }
 
+  public function setX(x: Float) {
+    this.x = x;
+    return this;
+  }
+
+  public function setY(y: Float) {
+    this.y = y;
+    return this;
+  }
+
   public function equal(v: Point2D) {
     return this.x == v.x && this.y == v.y;
   }

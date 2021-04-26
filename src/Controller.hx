@@ -7,8 +7,11 @@ import events.Events;
 import physics.Physics;
 import geom.Rectangle;
 import js.Browser;
+import loader.Loader;
 
 class Controller {
+  private static var instance: Controller;
+
   public var started = false;
   public var paused = false;
   public var model: Model;
@@ -18,6 +21,7 @@ class Controller {
   public var viewport: Rectangle;
   public var gamepad: Gamepad;
   public var coroutines: Coroutines;
+  public var loader: Loader;
 
   private var lastTime: Float;
   private var fixedTimeStep: Float = 1000 / 60 / 8;
@@ -31,7 +35,19 @@ class Controller {
     this.viewport = new Rectangle(0, 0, 0, 0);
     this.gamepad = new MultiGamepad();
     this.coroutines = new Coroutines();
+    this.loader = new Loader();
     this.model.setController(this);
+  }
+
+  public static function createInstance(model: Model, view: View) {
+    if (Controller.instance == null) {
+      Controller.instance = new Controller(model, view);
+    }
+    return Controller.instance;
+  }
+
+  public static function getInstance() {
+    return Controller.instance;
   }
 
   public function start() {

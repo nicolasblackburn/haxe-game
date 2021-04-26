@@ -25,7 +25,7 @@ class Emitter {
     }
   }
 
-  public function emit<T>(type: EventType<T>, event: T) {
+  public function emit<T>(type: EventType<T>, ?event: T) {
     if (this.listeners.exists(type)) {
       for (listener in this.listeners[type]) {
         listener(event);

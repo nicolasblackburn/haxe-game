@@ -1,5 +1,6 @@
 package entities;
 
+import physics.Body;
 import geom.Point2D;
 import geom.Transform;
 import geom.Rectangle;
@@ -35,13 +36,13 @@ class World {
 
   public function new() {}
 
-  public function canMove(entity: {position: Point2D, bounds: Rectangle}, position: Point2D) {
-    var xStart = position.x + entity.bounds.x;
-    var xEnd = xStart + entity.bounds.width;
+  public function canMove(body: Body, position: Point2D) {
+    var xStart = position.x + body.bounds.x;
+    var xEnd = xStart + body.bounds.width;
     var xEndInclusive = !Math.floatEqual(0, Math.modulo(xEnd, this.tileSize.x));
     
-    var yStart = position.y + entity.bounds.y;
-    var yEnd = yStart + entity.bounds.height;
+    var yStart = position.y + body.bounds.y;
+    var yEnd = yStart + body.bounds.height;
     var yEndInclusive = !Math.floatEqual(0, Math.modulo(yEnd, this.tileSize.y));
 
     var x = xStart;
@@ -60,6 +61,10 @@ class World {
     }
 
     return true;
+  }
+
+  public function canMovePoint(position: Point2D) {
+    return this.getTileIdAt(position.x, position.y) <= 0;
   }
 
   public function getTileIdAt(x: Float, y:  Float) {
