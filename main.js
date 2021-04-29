@@ -238,35 +238,19 @@ Model.prototype = {
 	,resolveCollisionX: function(body,displacement) {
 		var topCorner = displacement.x >= 0 ? body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y)).add(new geom_Point2D(body.bounds.width,0)) : body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y));
 		var bottomCorner = topCorner.clone().add(new geom_Point2D(0,body.bounds.height));
-		var correctionX = displacement.x >= 0 ? -(body.position.x + body.bounds.x + body.bounds.width) % this.world.tileSize.x : this.world.tileSize.x - (body.position.x + body.bounds.x) % this.world.tileSize.x;
-		body.position.x += correctionX;
-		if(!this.world.canMovePoint(topCorner) && this.world.canMovePoint(bottomCorner)) {
-			var nudgeY = Math.min(Math.abs(body.velocity.x) / Math.sqrt(2),this.world.tileSize.y - topCorner.y % this.world.tileSize.y);
-			if(nudgeY > displacement.y) {
-				body.velocity.y = nudgeY;
-			}
-		} else if(this.world.canMovePoint(topCorner) && !this.world.canMovePoint(bottomCorner)) {
-			var nudgeY1 = Math.max(-Math.abs(body.velocity.x) / Math.sqrt(2),-bottomCorner.y % this.world.tileSize.y);
-			if(nudgeY1 < displacement.y) {
-				body.velocity.y = nudgeY1;
-			}
+		if(displacement.x >= 0) {
+			body.position.x = Math.floor((body.position.x + body.bounds.x + body.bounds.width) / this.world.tileSize.x) * this.world.tileSize.x - body.bounds.x - body.bounds.width;
+		} else {
+			body.position.x = Math.ceil((body.position.x + body.bounds.x) / this.world.tileSize.x) * this.world.tileSize.x;
 		}
 	}
 	,resolveCollisionY: function(body,displacement) {
 		var leftCorner = displacement.y >= 0 ? body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y)).add(new geom_Point2D(0,body.bounds.height)) : body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y));
 		var rightCorner = leftCorner.clone().add(new geom_Point2D(body.bounds.width,0));
-		var correctionY = displacement.y >= 0 ? -(body.position.y + body.bounds.y + body.bounds.height) % this.world.tileSize.y : this.world.tileSize.y - (body.position.y + body.bounds.y) % this.world.tileSize.y;
-		body.position.y += correctionY;
-		if(!this.world.canMovePoint(leftCorner) && this.world.canMovePoint(rightCorner)) {
-			var nudgeX = Math.min(Math.abs(body.velocity.y) / Math.sqrt(2),this.world.tileSize.x - leftCorner.x % this.world.tileSize.x);
-			if(nudgeX > displacement.x) {
-				body.position.x += nudgeX;
-			}
-		} else if(this.world.canMovePoint(leftCorner) && !this.world.canMovePoint(rightCorner)) {
-			var nudgeX1 = Math.min(-Math.abs(body.velocity.y) / Math.sqrt(2),-rightCorner.x % this.world.tileSize.x);
-			if(nudgeX1 < displacement.x) {
-				body.position.x += nudgeX1;
-			}
+		if(displacement.y >= 0) {
+			body.position.y = Math.floor((body.position.y + body.bounds.y + body.bounds.height) / this.world.tileSize.y) * this.world.tileSize.y - body.bounds.y - body.bounds.height;
+		} else {
+			body.position.y = Math.ceil((body.position.y + body.bounds.y) / this.world.tileSize.y) * this.world.tileSize.y;
 		}
 	}
 	,__class__: Model
@@ -825,8 +809,7 @@ gamepad_events_ButtonReleasedEvent.prototype = $extend(gamepad_events_ButtonEven
 var gamepad_events_GamepadEvent = function() { };
 gamepad_events_GamepadEvent.__name__ = true;
 var gamepad_keyboard_KeyboardGamepad = function() {
-	this.buttons = [{ value : 0.0, pressed : false}];
-	this.axes = [0.0,0.0];
+	this.pureAxes = [0.0,0.0];
 	var _g = new haxe_ds_StringMap();
 	var value = { type : "axis", index : 1, value : -1.0};
 	if(__map_reserved["ArrowUp"] != null) {
@@ -859,6 +842,9 @@ var gamepad_keyboard_KeyboardGamepad = function() {
 		_g.h["a"] = value4;
 	}
 	this.mappings = _g;
+	this.keysStack = [];
+	this.buttons = [{ value : 0.0, pressed : false}];
+	this.axes = [0.0,0.0];
 	var _gthis = this;
 	events_Emitter.call(this);
 	window.addEventListener("keydown",function(event) {
@@ -883,13 +869,18 @@ gamepad_keyboard_KeyboardGamepad.prototype = $extend(events_Emitter.prototype,{
 			var keymap = __map_reserved[key1] != null ? _this1.getReserved(key1) : _this1.h[key1];
 			switch(keymap.type) {
 			case "axis":
-				if(this.axes[keymap.index] != keymap.value) {
-					this.axes[keymap.index] = keymap.value;
+				if(this.pureAxes[keymap.index] != keymap.value) {
+					this.keysStack.push(event.key);
+					this.pureAxes[keymap.index] = keymap.value;
+					var normalized = new geom_Point2D(this.pureAxes[0],this.pureAxes[1]).normalize();
+					this.axes[0] = normalized.x;
+					this.axes[1] = normalized.y;
 					this.emit("axispressed",new gamepad_events_AxisPressedEvent(this.axes[0],this.axes[1],[0,1]));
 				}
 				break;
 			case "button":
 				if(this.buttons[keymap.index].value != keymap.value) {
+					this.keysStack.push(event.key);
 					this.buttons[keymap.index].value = keymap.value;
 					this.buttons[keymap.index].pressed = true;
 					this.emit("buttonpressed",new gamepad_events_ButtonPressedEvent(keymap.value,keymap.index));
@@ -907,20 +898,69 @@ gamepad_keyboard_KeyboardGamepad.prototype = $extend(events_Emitter.prototype,{
 			var keymap = __map_reserved[key1] != null ? _this1.getReserved(key1) : _this1.h[key1];
 			switch(keymap.type) {
 			case "axis":
-				if(this.axes[keymap.index] != 0.0) {
-					this.axes[keymap.index] = 0.0;
+				var _g = [];
+				var _g1 = 0;
+				var _g2 = this.keysStack;
+				while(_g1 < _g2.length) {
+					var v = _g2[_g1];
+					++_g1;
+					if(v != event.key) {
+						_g.push(v);
+					}
+				}
+				this.keysStack = _g;
+				if(this.reverseKeyInStack(event.key)) {
+					this.pureAxes[keymap.index] = -this.pureAxes[keymap.index];
+				} else {
+					this.pureAxes[keymap.index] = 0.0;
+				}
+				var normalized = new geom_Point2D(this.pureAxes[0],this.pureAxes[1]).normalize();
+				this.axes[0] = normalized.x;
+				this.axes[1] = normalized.y;
+				if(this.axes[0] == 0.0 && this.axes[1] == 0.0) {
 					this.emit("axisreleased",new gamepad_events_AxisReleasedEvent([0,1]));
+				} else {
+					this.emit("axispressed",new gamepad_events_AxisPressedEvent(this.axes[0],this.axes[1],[0,1]));
 				}
 				break;
 			case "button":
-				if(this.buttons[keymap.index].value != 0.0) {
-					this.buttons[keymap.index].value = 0.0;
-					this.buttons[keymap.index].pressed = false;
-					this.emit("buttonreleased",new gamepad_events_ButtonReleasedEvent(keymap.index));
+				var _g3 = [];
+				var _g11 = 0;
+				var _g21 = this.keysStack;
+				while(_g11 < _g21.length) {
+					var v1 = _g21[_g11];
+					++_g11;
+					if(v1 != event.key) {
+						_g3.push(v1);
+					}
 				}
+				this.keysStack = _g3;
+				this.buttons[keymap.index].value = 0.0;
+				this.buttons[keymap.index].pressed = false;
+				this.emit("buttonreleased",new gamepad_events_ButtonReleasedEvent(keymap.index));
 				break;
 			}
 		}
+	}
+	,reverseKeyInStack: function(key) {
+		var _g = new haxe_iterators_MapKeyValueIterator(this.mappings);
+		while(_g.hasNext()) {
+			var _g1 = _g.next();
+			var reverseKey = _g1.key;
+			var map = _g1.value;
+			var tmp;
+			var _this = this.mappings;
+			if(map.index == (__map_reserved[key] != null ? _this.getReserved(key) : _this.h[key]).index) {
+				var _this1 = this.mappings;
+				tmp = map.value == -(__map_reserved[key] != null ? _this1.getReserved(key) : _this1.h[key]).value;
+			} else {
+				tmp = false;
+			}
+			if(tmp && this.keysStack.indexOf(reverseKey) >= 0) {
+				return true;
+			}
+		}
+		return false;
 	}
 	,__class__: gamepad_keyboard_KeyboardGamepad
 });
