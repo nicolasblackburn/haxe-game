@@ -228,11 +228,11 @@ Model.prototype = {
 		var displacement = position.clone().subtract(body.position);
 		body.position.x += displacement.x;
 		if(!this.world.canMove(body,body.position)) {
-			this.resolveCollisionX(body,body.velocity);
+			this.resolveCollisionX(body,displacement);
 		}
 		body.position.y += displacement.y;
 		if(!this.world.canMove(body,body.position)) {
-			this.resolveCollisionY(body,body.velocity);
+			this.resolveCollisionY(body,displacement);
 		}
 	}
 	,resolveCollisionX: function(body,displacement) {
@@ -243,6 +243,25 @@ Model.prototype = {
 		} else {
 			body.position.x = Math.ceil((body.position.x + body.bounds.x) / this.world.tileSize.x) * this.world.tileSize.x;
 		}
+		if(!this.world.canMovePoint(topCorner) && this.world.canMovePoint(bottomCorner)) {
+			var nudge = Math.abs(displacement.x) / Math.sqrt(2);
+			if(nudge > displacement.y) {
+				if(this.world.canMovePoint(topCorner.clone().add(new geom_Point2D(0,nudge)))) {
+					displacement.y = this.world.tileSize.y - topCorner.y % this.world.tileSize.y;
+				} else {
+					displacement.y = nudge;
+				}
+			}
+		} else if(this.world.canMovePoint(topCorner) && !this.world.canMovePoint(bottomCorner)) {
+			var nudge1 = -Math.abs(displacement.x) / Math.sqrt(2);
+			if(nudge1 < displacement.y) {
+				if(this.world.canMovePoint(bottomCorner.clone().add(new geom_Point2D(0,nudge1)))) {
+					displacement.y = -bottomCorner.y % (2 * this.world.tileSize.y);
+				} else {
+					displacement.y = nudge1;
+				}
+			}
+		}
 	}
 	,resolveCollisionY: function(body,displacement) {
 		var leftCorner = displacement.y >= 0 ? body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y)).add(new geom_Point2D(0,body.bounds.height)) : body.position.clone().add(new geom_Point2D(body.bounds.x,body.bounds.y));
@@ -251,6 +270,25 @@ Model.prototype = {
 			body.position.y = Math.floor((body.position.y + body.bounds.y + body.bounds.height) / this.world.tileSize.y) * this.world.tileSize.y - body.bounds.y - body.bounds.height;
 		} else {
 			body.position.y = Math.ceil((body.position.y + body.bounds.y) / this.world.tileSize.y) * this.world.tileSize.y;
+		}
+		if(!this.world.canMovePoint(leftCorner) && this.world.canMovePoint(rightCorner)) {
+			var nudge = Math.abs(displacement.y) / Math.sqrt(2);
+			if(nudge > displacement.x) {
+				if(this.world.canMovePoint(leftCorner.clone().add(new geom_Point2D(nudge,0)))) {
+					body.position.x = Math.floor((body.position.x + nudge) / this.world.tileSize.x) * this.world.tileSize.x;
+				} else {
+					body.position.x += nudge;
+				}
+			}
+		} else if(this.world.canMovePoint(leftCorner) && !this.world.canMovePoint(rightCorner)) {
+			var nudge1 = -Math.abs(displacement.y) / Math.sqrt(2);
+			if(nudge1 < displacement.x) {
+				if(this.world.canMovePoint(rightCorner.clone().add(new geom_Point2D(nudge1,0)))) {
+					body.position.x += -rightCorner.x % this.world.tileSize.x;
+				} else {
+					body.position.x += nudge1;
+				}
+			}
 		}
 	}
 	,__class__: Model
