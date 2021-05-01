@@ -83,11 +83,11 @@ class Model implements PhysicsModel {
     var displacement = position.clone().subtract(body.position);
     body.position.x += displacement.x;
     if (!this.world.canMove(body, body.position)) {
-      this.resolveCollisionX(body, body.velocity);
+      this.resolveCollisionX(body, displacement);
     }
     body.position.y += displacement.y;
     if (!this.world.canMove(body, body.position)) {
-      this.resolveCollisionY(body, body.velocity);
+      this.resolveCollisionY(body, displacement);
     }
   }
 
@@ -106,41 +106,25 @@ class Model implements PhysicsModel {
       body.position.x = Math.ceil((body.position.x + body.bounds.x) / this.world.tileSize.x) * this.world.tileSize.x;
     }
     
-    /*
     if (!this.world.canMovePoint(topCorner) && this.world.canMovePoint(bottomCorner)) {
-      var nudgeY = Math.min(
-        Math.abs(displacement.x) / Math.sqrt(2),
-        this.world.tileSize.y - topCorner.y % this.world.tileSize.y
-      );
-      trace(
-        "resolveX nudge 1",
-        body.position.x,
-        body.position.y,
-        Math.abs(displacement.x) / Math.sqrt(2),
-        this.world.tileSize.y - topCorner.y % this.world.tileSize.y,
-        nudgeY
-      );
-      if (nudgeY > displacement.y) {
-        body.velocity.y = nudgeY;
+      var nudge = Math.abs(displacement.x) / Math.sqrt(2);
+      if (nudge > displacement.y) {
+        if (this.world.canMovePoint(topCorner.clone().add(new Point2D(0, nudge)))) {
+          displacement.y = this.world.tileSize.y - topCorner.y % this.world.tileSize.y;
+        } else {
+          displacement.y = nudge;
+        }
       }
     } else if (this.world.canMovePoint(topCorner) && !this.world.canMovePoint(bottomCorner)) {
-      var nudgeY = Math.max(
-        -Math.abs(displacement.x) / Math.sqrt(2),
-        -bottomCorner.y % this.world.tileSize.y
-      );
-      trace(
-        "resolveX nudge 2",
-        body.position.x,
-        body.position.y,
-        Math.abs(displacement.x) / Math.sqrt(2),
-        this.world.tileSize.y - topCorner.y % this.world.tileSize.y,
-        nudgeY
-      );
-      if (nudgeY < displacement.y) {
-        body.velocity.y = nudgeY;
+      var nudge = -Math.abs(displacement.x) / Math.sqrt(2); 
+      if (nudge < displacement.y) {
+        if (this.world.canMovePoint(bottomCorner.clone().add(new Point2D(0, nudge)))) {
+          displacement.y = -bottomCorner.y % (2 * this.world.tileSize.y);
+        } else {
+          displacement.y = nudge;
+        }
       }
     }
-      */
   }
 
   private function resolveCollisionY(body: Body, displacement: Point2D) {
@@ -152,30 +136,30 @@ class Model implements PhysicsModel {
 
     var rightCorner = leftCorner.clone().add(new Point2D(body.bounds.width, 0));
 
-     if (displacement.y >= 0) {
+    if (displacement.y >= 0) {
       body.position.y = Math.floor((body.position.y + body.bounds.y + body.bounds.height) / this.world.tileSize.y) * this.world.tileSize.y - body.bounds.y - body.bounds.height;
     } else {
       body.position.y = Math.ceil((body.position.y + body.bounds.y) / this.world.tileSize.y) * this.world.tileSize.y;
     }
 
-    /*
     if (!this.world.canMovePoint(leftCorner) && this.world.canMovePoint(rightCorner)) {
-      var nudgeX = Math.min(
-        Math.abs(displacement.y) / Math.sqrt(2),
-        this.world.tileSize.x - leftCorner.x % this.world.tileSize.x
-      );
-      if (nudgeX > displacement.x) {
-        body.position.x += nudgeX;
+      var nudge = Math.abs(displacement.y) / Math.sqrt(2);
+      if (nudge > displacement.x) {
+        if (this.world.canMovePoint(leftCorner.clone().add(new Point2D(nudge, 0)))) {
+          body.position.x = Math.floor((body.position.x + nudge) / this.world.tileSize.x) * this.world.tileSize.x;
+        } else {
+          body.position.x += nudge;
+        }
       }
     } else if (this.world.canMovePoint(leftCorner) && !this.world.canMovePoint(rightCorner)) {
-      var nudgeX = Math.max(
-        -Math.abs(displacement.y) / Math.sqrt(2),
-        -rightCorner.x % (2 * this.world.tileSize.x)
-      );
-      if (nudgeX < displacement.x) {
-        body.position.x += nudgeX;
+      var nudge = -Math.abs(displacement.y) / Math.sqrt(2);
+      if (nudge < displacement.x) {
+        if (this.world.canMovePoint(rightCorner.clone().add(new Point2D(nudge, 0)))) {
+          body.position.x += -rightCorner.x % this.world.tileSize.x;
+        } else {
+          body.position.x += nudge;
+        }
       }
     }
-    */
   }
 }
