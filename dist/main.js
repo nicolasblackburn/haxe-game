@@ -130,6 +130,7 @@ Main.main = function() {
 	var controller = Controller.createInstance(model,new View(model));
 	controller.start();
 	window.Controller = Controller;
+	var surface = new gamepad_touch_TouchSurface({ delayTouchStart : true, touchStartDistanceThresold : 7, tapTimeThresold : 100});
 };
 Math.__name__ = true;
 var physics_PhysicsModel = function() { };
@@ -1320,10 +1321,10 @@ var gamepad_touch_TouchSurface = function(options) {
 	events_Emitter.call(this);
 	this.options = options;
 	this.distanceThresholdSquared = this.options.touchStartDistanceThresold * this.options.touchStartDistanceThresold;
+	window.document.body.style.touchAction = "none";
 	window.document.addEventListener("pointerdown",$bind(this,this.onPointerDown));
 	window.document.addEventListener("pointermove",$bind(this,this.onPointerMove));
 	window.document.addEventListener("pointerup",$bind(this,this.onPointerUp));
-	window.document.addEventListener("pointermoveputside",$bind(this,this.onPointerMoveOutside));
 };
 gamepad_touch_TouchSurface.__name__ = true;
 gamepad_touch_TouchSurface.__super__ = events_Emitter;
@@ -1351,9 +1352,6 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 		if(touch != null) {
 			touch.moveX = event.x - touch.startX;
 			touch.moveY = event.y - touch.startY;
-			if(touch.moveX == 0 && touch.moveY == 0) {
-				console.log(event.x,event.y,touch.x,touch.y,touch);
-			}
 			touch.x = event.x;
 			touch.y = event.y;
 			if(!touch.started && this.distanceSquared({ x : touch.x, y : touch.y},{ x : touch.startX, y : touch.startY}) >= this.distanceThresholdSquared) {
@@ -1368,6 +1366,10 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 		var touch = this.findClosest({ x : event.x, y : event.y},this.touches);
 		if(touch != null) {
 			this.touches.splice(this.touches.indexOf(touch),1);
+			touch.moveX = event.x - touch.startX;
+			touch.moveY = event.y - touch.startY;
+			touch.x = event.x;
+			touch.y = event.y;
 			if(touch.started) {
 				this.emit("touchend",new gamepad_touch_events_TouchEndEvent(touch,this.touches));
 			} else {
@@ -1376,15 +1378,6 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 					this.emit("tappressed",new gamepad_touch_events_TapPressedEvent(touch,this.touches));
 				}
 				this.emit("tapreleased",new gamepad_touch_events_TapReleasedEvent(touch,this.touches));
-			}
-		}
-	}
-	,onPointerMoveOutside: function(event) {
-		var touch = this.findClosest({ x : event.x, y : event.y},this.touches);
-		if(touch != null) {
-			this.touches.splice(this.touches.indexOf(touch),1);
-			if(touch.started) {
-				this.emit("touchendoutside",new gamepad_touch_events_TouchEndOutsideEvent(touch,this.touches));
 			}
 		}
 	}
@@ -1401,7 +1394,7 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 		return id;
 	}
 	,findClosest: function(touch,touches) {
-		var closest = new gamepad_touch_TouchState(-1,0,0);
+		var closest = null;
 		var minDist = Infinity;
 		var _g = 0;
 		while(_g < touches.length) {
@@ -1409,17 +1402,13 @@ gamepad_touch_TouchSurface.prototype = $extend(events_Emitter.prototype,{
 			++_g;
 			var dx = touch.x - touch2.x;
 			var dy = touch.y - touch2.y;
-			var dist = Math.sqrt(dx * dx + dy * dy);
-			if(dist < minDist) {
+			var dist = dx * dx + dy * dy;
+			if(closest == null || dist < minDist) {
 				closest = touch2;
 				minDist = dist;
 			}
 		}
-		if(closest.id >= 0) {
-			return closest;
-		} else {
-			return null;
-		}
+		return closest;
 	}
 	,distanceSquared: function(u,v) {
 		var x = u.x - v.x;
