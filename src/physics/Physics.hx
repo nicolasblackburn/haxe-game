@@ -9,26 +9,10 @@ class Physics {
     this.model = model;
   }
 
-  public function update(deltaTime: Float) {
+  public function fixedUpdate(deltaTime: Float) {
     for (body in this.model.getBodies()) {
       body.velocity.add(body.acceleration);
       this.model.move(body, body.position.clone().add(body.velocity));
     }
-  }
-
-  private function canMoveAbove() {
-    return false;
-  }
-
-  private function canMoveBelow() {
-    return false;
-  }
-
-  private function canMoveLeft() {
-    return false;
-  }
-
-  private function canMoveRight() {
-    return false;
   }
 }

@@ -3,6 +3,8 @@ import gamepad.touch.events.TouchEvent;
 import js.Browser;
 import gamepad.touch.TouchSurface;
 import gamepad.touch.TouchRegion;
+import coroutines.Coroutines;
+import coroutines.Result;
 
 class Main {
   public static var model: Model;
@@ -15,6 +17,8 @@ class Main {
 
     // For debuging
     (cast Browser.window).Controller = Controller;
+    (cast Browser.window).Coroutines = Coroutines;
+    (cast Browser.window).Result = Result;
   }
 }
 

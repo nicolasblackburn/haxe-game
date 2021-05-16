@@ -1,5 +1,7 @@
 package geom;
 
+using math.MathExtensions;
+
 class Point2D {
   public var x: Float;
   public var y: Float;
@@ -11,6 +13,12 @@ class Point2D {
   public function set(x: Float, y: Float) {
     this.x = x;
     this.y = y;
+    return this;
+  }
+
+  public function setFromPoint2D(p: Point2D) {
+    this.x = p.x;
+    this.y = p.y;
     return this;
   }
 
@@ -26,6 +34,10 @@ class Point2D {
 
   public function equal(v: Point2D) {
     return this.x == v.x && this.y == v.y;
+  }
+
+  public function floatEqual(v: Point2D, epsilon = 0.0001) {
+    return Math.floatEqual(this.x, v.x, epsilon) && Math.floatEqual(this.y, v.y, epsilon);
   }
 
   public function clone() {

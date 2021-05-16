@@ -1,5 +1,6 @@
 package entities;
 
+import geom.Point2DInt;
 import physics.Body;
 import geom.Point2D;
 import geom.Transform;
@@ -9,10 +10,9 @@ using math.MathExtensions;
 
 class World {
   public var active = true;
-  public var name = "world";
   public var transform = new Transform();
-  public var gridSize = new Point2D(28, 18);
-  public var tileSize = new Point2D(8, 8);
+  public var gridSize = new Point2DInt(28, 18);
+  public var tileSize = new Point2DInt(8, 8);
   public var tileIds = [
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -68,8 +68,15 @@ class World {
   }
 
   public function getTileIdAt(x: Float, y:  Float) {
-    var xIndex = Std.int(x / this.tileSize.x);
-    var yIndex = Std.int(y / this.tileSize.y);
-    return this.tileIds[xIndex + Std.int(this.gridSize.x) * yIndex];
+    var gridCoordinates = this.toGridCoordinates(x, y);
+    return this.tileIds[gridCoordinates.x + Std.int(this.gridSize.x) * gridCoordinates.y];
+  }
+
+  public function toGridCoordinates(x: Float, y: Float) {
+    return new Point2DInt(Std.int(x / this.tileSize.x), Std.int(y / this.tileSize.y));
+  }
+
+  public function toWorldCoordinates(x: Int, y: Int) {
+    return new Point2D(x * this.tileSize.x, y * this.tileSize.y);
   }
 }

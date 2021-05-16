@@ -99,12 +99,11 @@ class Controller {
   }
 
   private function fixedUpdate(deltaTime: Float) {
-    this.physics.update(deltaTime);
+    this.model.fixedUpdate(deltaTime);
+    this.physics.fixedUpdate(deltaTime);
   }
 
   private function update(deltaTime: Float) {
-    this.model.update(deltaTime);
-
     if (this.started && !this.view.visible) {
       this.view.visible = true;
     }

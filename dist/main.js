@@ -83,10 +83,10 @@ Controller.prototype = {
 		});
 	}
 	,fixedUpdate: function(deltaTime) {
-		this.physics.update(deltaTime);
+		this.model.fixedUpdate(deltaTime);
+		this.physics.fixedUpdate(deltaTime);
 	}
 	,update: function(deltaTime) {
-		this.model.update(deltaTime);
 		if(this.started && !this.view.visible) {
 			this.view.visible = true;
 		}
@@ -130,7 +130,8 @@ Main.main = function() {
 	var controller = Controller.createInstance(model,new View(model));
 	controller.start();
 	window.Controller = Controller;
-	var surface = new gamepad_touch_TouchSurface({ delayTouchStart : true, touchStartDistanceThresold : 7, tapTimeThresold : 100});
+	window.Coroutines = coroutines_Coroutines;
+	window.Result = coroutines_Result;
 };
 Math.__name__ = true;
 var physics_PhysicsModel = function() { };
@@ -143,17 +144,17 @@ var Model = function() {
 	this.world = new entities_World();
 	this.hero = new entities_Hero();
 	var _g = [];
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	_g.push(new entities_Enemy());
-	this.enemies = _g;
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	_g.push(new entities_Monster());
+	this.monsters = _g;
 };
 Model.__name__ = true;
 Model.__interfaces__ = [physics_PhysicsModel];
@@ -176,33 +177,43 @@ Model.prototype = {
 		}
 		var heroRegion = new geom_Rectangle(this.hero.position.x + this.hero.bounds.x - this.world.tileSize.x,this.hero.position.y + this.hero.bounds.y - this.world.tileSize.y,this.hero.bounds.width + 2 * this.world.tileSize.x,this.hero.bounds.height + 2 * this.world.tileSize.y);
 		var _g = 0;
-		var _g1 = this.enemies.slice(0,4);
+		var _g1 = this.monsters.slice(0,4);
 		while(_g < _g1.length) {
-			var enemy = _g1[_g];
+			var monster = _g1[_g];
 			++_g;
-			enemy.active = true;
+			monster.active = true;
 			var x = Math.random();
-			enemy.position.x = ((x * (gridSize.x / 2 - 2) | 0) + 1) * tileSize.x * 2;
+			monster.position.x = ((x * (gridSize.x / 2 - 2) | 0) + 1) * tileSize.x * 2;
 			var x1 = Math.random();
-			enemy.position.y = ((x1 * (gridSize.y / 2 - 2) | 0) + 1) * tileSize.y * 2;
-			while(!this.world.canMove(enemy,enemy.position) || geom_RectangleOperations.overlap(heroRegion,enemy.bounds)) {
+			monster.position.y = ((x1 * (gridSize.y / 2 - 2) | 0) + 1) * tileSize.y * 2;
+			while(!this.world.canMove(monster,monster.position) || geom_RectangleOperations.overlap(heroRegion,monster.bounds)) {
 				var x2 = Math.random();
-				enemy.position.x = ((x2 * (gridSize.x / 2 - 2) | 0) + 1) * tileSize.x * 2;
+				monster.position.x = ((x2 * (gridSize.x / 2 - 2) | 0) + 1) * tileSize.x * 2;
 				var x3 = Math.random();
-				enemy.position.y = ((x3 * (gridSize.y / 2 - 2) | 0) + 1) * tileSize.y * 2;
+				monster.position.y = ((x3 * (gridSize.y / 2 - 2) | 0) + 1) * tileSize.y * 2;
 			}
 		}
 	}
-	,update: function(deltaTime) {
-		var gamepad = this.controller.gamepad;
-		this.hero.velocity.set(gamepad.axes[0],gamepad.axes[1]).multiply(this.hero.maxSpeed);
+	,fixedUpdate: function(deltaTime) {
+		if(this.hero.active) {
+			this.hero.states.update();
+		}
+		var _g = 0;
+		var _g1 = this.monsters;
+		while(_g < _g1.length) {
+			var monster = _g1[_g];
+			++_g;
+			if(monster.active) {
+				monster.states.update();
+			}
+		}
 	}
 	,getBodies: function() {
 		if(this.hero.active) {
 			var tmp = [js_Boot.__cast(this.hero , physics_Body)];
 			var _g = [];
 			var _g1 = 0;
-			var _g2 = this.enemies;
+			var _g2 = this.monsters;
 			while(_g1 < _g2.length) {
 				var v = _g2[_g1];
 				++_g1;
@@ -214,7 +225,7 @@ Model.prototype = {
 		} else {
 			var _g3 = [];
 			var _g11 = 0;
-			var _g21 = this.enemies;
+			var _g21 = this.monsters;
 			while(_g11 < _g21.length) {
 				var v1 = _g21[_g11];
 				++_g11;
@@ -300,7 +311,7 @@ Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
 var View = function(model) {
-	this.enemies = [];
+	this.monsters = [];
 	this.tiles = [];
 	this.visible = false;
 	this.model = model;
@@ -321,13 +332,13 @@ var View = function(model) {
 		this.tiles.push(tile);
 	}
 	var _g2 = 0;
-	var _g3 = model.enemies;
+	var _g3 = model.monsters;
 	while(_g2 < _g3.length) {
-		var enemyModel = _g3[_g2];
+		var monsterModel = _g3[_g2];
 		++_g2;
-		var enemy = this.createEnemy(enemyModel);
-		this.scene.appendChild(enemy);
-		this.enemies.push(enemy);
+		var monster = this.createMonster(monsterModel);
+		this.scene.appendChild(monster);
+		this.monsters.push(monster);
 	}
 	this.hero = this.createHero(model.hero);
 	this.scene.appendChild(this.hero);
@@ -345,17 +356,17 @@ View.prototype = {
 			this.hero.setAttributeNS(null,"yy",this.model.hero.bounds.height / 2 + "px");
 		}
 		var _g = 0;
-		var _g1 = this.model.enemies.length;
+		var _g1 = this.model.monsters.length;
 		while(_g < _g1) {
 			var index = _g++;
-			var enemyModel = this.model.enemies[index];
-			var enemyView = this.enemies[index];
-			enemyView.style.visibility = enemyModel.active ? "" : "hidden";
-			if(enemyModel.active) {
-				enemyView.setAttributeNS(null,"cx",enemyModel.position.x + enemyModel.bounds.width / 2 + "px");
-				enemyView.setAttributeNS(null,"cy",enemyModel.position.y + enemyModel.bounds.height / 2 + "px");
-				enemyView.setAttributeNS(null,"rx",enemyModel.bounds.width / 2 + "px");
-				enemyView.setAttributeNS(null,"yy",enemyModel.bounds.height / 2 + "px");
+			var monsterModel = this.model.monsters[index];
+			var monsterView = this.monsters[index];
+			monsterView.style.visibility = monsterModel.active ? "" : "hidden";
+			if(monsterModel.active) {
+				monsterView.setAttributeNS(null,"cx",monsterModel.position.x + monsterModel.bounds.width / 2 + "px");
+				monsterView.setAttributeNS(null,"cy",monsterModel.position.y + monsterModel.bounds.height / 2 + "px");
+				monsterView.setAttributeNS(null,"rx",monsterModel.bounds.width / 2 + "px");
+				monsterView.setAttributeNS(null,"yy",monsterModel.bounds.height / 2 + "px");
 			}
 		}
 	}
@@ -458,7 +469,7 @@ View.prototype = {
 	}
 	,createHero: function(hero) {
 		var _g = new haxe_ds_StringMap();
-		var value = "hero";
+		var value = hero.kind;
 		if(__map_reserved["class"] != null) {
 			_g.setReserved("class",value);
 		} else {
@@ -496,33 +507,33 @@ View.prototype = {
 		}
 		return this.createElement("ellipse",_g);
 	}
-	,createEnemy: function(enemy) {
+	,createMonster: function(monster) {
 		var _g = new haxe_ds_StringMap();
-		var value = "enemy";
+		var value = monster.kind;
 		if(__map_reserved["class"] != null) {
 			_g.setReserved("class",value);
 		} else {
 			_g.h["class"] = value;
 		}
-		var value1 = "" + enemy.bounds.width / 2 + "px";
+		var value1 = "" + monster.bounds.width / 2 + "px";
 		if(__map_reserved["cx"] != null) {
 			_g.setReserved("cx",value1);
 		} else {
 			_g.h["cx"] = value1;
 		}
-		var value2 = "" + enemy.bounds.height / 2 + "px";
+		var value2 = "" + monster.bounds.height / 2 + "px";
 		if(__map_reserved["cy"] != null) {
 			_g.setReserved("cy",value2);
 		} else {
 			_g.h["cy"] = value2;
 		}
-		var value3 = "" + enemy.bounds.width / 2 + "px";
+		var value3 = "" + monster.bounds.width / 2 + "px";
 		if(__map_reserved["rx"] != null) {
 			_g.setReserved("rx",value3);
 		} else {
 			_g.h["rx"] = value3;
 		}
-		var value4 = "" + enemy.bounds.height / 2 + "px";
+		var value4 = "" + monster.bounds.height / 2 + "px";
 		if(__map_reserved["ry"] != null) {
 			_g.setReserved("ry",value4);
 		} else {
@@ -560,12 +571,6 @@ View.prototype = {
 	}
 	,__class__: View
 };
-var coroutines_Coroutine = function() { };
-coroutines_Coroutine.__name__ = true;
-coroutines_Coroutine.__isInterface__ = true;
-coroutines_Coroutine.prototype = {
-	__class__: coroutines_Coroutine
-};
 var coroutines_Coroutines = function() {
 	this.stacks = [];
 };
@@ -594,35 +599,43 @@ coroutines_Coroutines.prototype = {
 			var stack = _g1[_g];
 			++_g;
 			var top = stack.pop();
-			var result = top.next();
-			if(!result.done) {
+			var _g2 = top();
+			switch(_g2._hx_index) {
+			case 0:
+				break;
+			case 1:
 				stack.push(top);
-			}
-			if(result.value != null) {
-				stack.push(result.value);
+				break;
+			case 2:
+				var next = _g2.next;
+				stack.push(next);
+				break;
+			case 3:
+				var next1 = _g2.next;
+				stack.push(top);
+				stack.push(next1);
+				break;
 			}
 		}
-		var _g2 = [];
+		var _g3 = [];
 		var _g11 = 0;
 		var _g21 = this.stacks;
 		while(_g11 < _g21.length) {
 			var v = _g21[_g11];
 			++_g11;
 			if(v.length > 0) {
-				_g2.push(v);
+				_g3.push(v);
 			}
 		}
-		this.stacks = _g2;
+		this.stacks = _g3;
 	}
 	,__class__: coroutines_Coroutines
 };
-var coroutines_Result = function(done,value) {
-	this.value = value;
-	this.done = done;
-};
-coroutines_Result.__name__ = true;
-coroutines_Result.prototype = {
-	__class__: coroutines_Result
+var coroutines_Result = $hxEnums["coroutines.Result"] = { __ename__ : true, __constructs__ : ["Terminate","Continue","Return","Push"]
+	,Terminate: {_hx_index:0,__enum__:"coroutines.Result",toString:$estr}
+	,Continue: {_hx_index:1,__enum__:"coroutines.Result",toString:$estr}
+	,Return: ($_=function(next) { return {_hx_index:2,next:next,__enum__:"coroutines.Result",toString:$estr}; },$_.__params__ = ["next"],$_)
+	,Push: ($_=function(next) { return {_hx_index:3,next:next,__enum__:"coroutines.Result",toString:$estr}; },$_.__params__ = ["next"],$_)
 };
 var physics_Body = function() { };
 physics_Body.__name__ = true;
@@ -630,40 +643,115 @@ physics_Body.__isInterface__ = true;
 physics_Body.prototype = {
 	__class__: physics_Body
 };
-var entities_Enemy = function() {
-	this.maxSpeed = 0.0666666666666666657;
-	this.bounds = new geom_Rectangle(0,0,16,16);
-	this.acceleration = new geom_Point2D(0,0);
-	this.velocity = new geom_Point2D(0,0);
-	this.position = new geom_Point2D(0,0);
-	this.name = "enemy";
-	this.active = false;
-};
-entities_Enemy.__name__ = true;
-entities_Enemy.__interfaces__ = [physics_Body];
-entities_Enemy.prototype = {
-	__class__: entities_Enemy
-};
-var entities_Hero = function() {
+var entities_Entity = function(kind) {
+	this.states = new coroutines_Coroutines();
 	this.maxSpeed = 0.1;
 	this.bounds = new geom_Rectangle(0,0,16,16);
 	this.acceleration = new geom_Point2D(0,0);
 	this.velocity = new geom_Point2D(0,0);
 	this.position = new geom_Point2D(0,0);
-	this.name = "hero";
+	this.kind = "entity";
 	this.active = true;
+	this.kind = kind;
+};
+entities_Entity.__name__ = true;
+entities_Entity.__interfaces__ = [physics_Body];
+entities_Entity.prototype = {
+	__class__: entities_Entity
+};
+var entities_Hero = function() {
+	entities_Entity.call(this,"hero");
+	this.maxSpeed = 0.1;
+	this.states.add($bind(this,this.updateNormal));
 };
 entities_Hero.__name__ = true;
-entities_Hero.__interfaces__ = [physics_Body];
-entities_Hero.prototype = {
-	__class__: entities_Hero
+entities_Hero.__super__ = entities_Entity;
+entities_Hero.prototype = $extend(entities_Entity.prototype,{
+	updateNormal: function() {
+		var gamepad = Controller.getInstance().gamepad;
+		this.velocity.set(gamepad.axes[0],gamepad.axes[1]).multiply(this.maxSpeed);
+		return coroutines_Result.Continue;
+	}
+	,__class__: entities_Hero
+});
+var entities_MonsterState = $hxEnums["entities.MonsterState"] = { __ename__ : true, __constructs__ : ["Idle","Seek"]
+	,Idle: {_hx_index:0,__enum__:"entities.MonsterState",toString:$estr}
+	,Seek: {_hx_index:1,__enum__:"entities.MonsterState",toString:$estr}
 };
+var entities_Monster = function() {
+	this.state = entities_MonsterState.Idle;
+	entities_Entity.call(this,"monster");
+	this.active = false;
+	this.maxSpeed = 0.0666666666666666657;
+	this.states.add($bind(this,this.updateNormal));
+};
+entities_Monster.__name__ = true;
+entities_Monster.__super__ = entities_Entity;
+entities_Monster.prototype = $extend(entities_Entity.prototype,{
+	updateNormal: function() {
+		var world = Controller.getInstance().model.world;
+		this.state = entities_MonsterState.Idle;
+		this.changeDirection();
+		if(!world.canMove(this,this.target)) {
+			return coroutines_Result.Continue;
+		} else {
+			return coroutines_Result.Push($bind(this,this.updateSeek));
+		}
+	}
+	,updateSeek: function() {
+		this.state = entities_MonsterState.Seek;
+		var difference = this.target.clone().subtract(this.position);
+		var norm = difference.norm();
+		if(this.maxSpeed >= norm) {
+			return coroutines_Result.Terminate;
+		} else {
+			this.velocity = difference.normalize().multiply(this.maxSpeed);
+			return coroutines_Result.Continue;
+		}
+	}
+	,targetReached: function() {
+		return this.target.floatEqual(this.position);
+	}
+	,changeDirection: function() {
+		var world = Controller.getInstance().model.world;
+		var oldTarget = this.target != null ? this.target.clone() : null;
+		if(oldTarget != null) {
+			var direction = this.velocity.clone().normalize();
+			var grid = world.toGridCoordinates(oldTarget.x,oldTarget.y);
+			grid.add(new geom_Point2DInt((direction.x | 0) * 2,(direction.y | 0) * 2));
+			this.target = world.toWorldCoordinates(grid.x,grid.y);
+		}
+		if(this.target == null || !world.canMove(this,this.target) || Math.random() < 0.25) {
+			while(true) {
+				var grid1 = oldTarget != null ? world.toGridCoordinates(oldTarget.x,oldTarget.y) : world.toGridCoordinates(this.position.x,this.position.y);
+				switch(Math.random() * 4 | 0) {
+				case 0:
+					grid1.add(new geom_Point2DInt(2,0));
+					break;
+				case 1:
+					grid1.add(new geom_Point2DInt(0,2));
+					break;
+				case 2:
+					grid1.add(new geom_Point2DInt(-2,0));
+					break;
+				case 3:
+					grid1.add(new geom_Point2DInt(0,-2));
+					break;
+				}
+				this.target = world.toWorldCoordinates(grid1.x,grid1.y);
+				if(!(!world.canMove(this,this.target))) {
+					break;
+				}
+			}
+		}
+	}
+	,__class__: entities_Monster
+});
 var entities_World = function() {
 	this.tileIds = [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1];
-	this.tileSize = new geom_Point2D(8,8);
-	this.gridSize = new geom_Point2D(28,18);
+	this.tileSize = new geom_Point2DInt(8,8);
+	this.gridSize = new geom_Point2DInt(28,18);
 	this.transform = new geom_Transform();
-	this.name = "world";
 	this.active = true;
 };
 entities_World.__name__ = true;
@@ -692,9 +780,14 @@ entities_World.prototype = {
 		return this.getTileIdAt(position.x,position.y) <= 0;
 	}
 	,getTileIdAt: function(x,y) {
-		var xIndex = x / this.tileSize.x | 0;
-		var yIndex = y / this.tileSize.y | 0;
-		return this.tileIds[xIndex + (this.gridSize.x | 0) * yIndex];
+		var gridCoordinates = this.toGridCoordinates(x,y);
+		return this.tileIds[gridCoordinates.x + (this.gridSize.x | 0) * gridCoordinates.y];
+	}
+	,toGridCoordinates: function(x,y) {
+		return new geom_Point2DInt(x / this.tileSize.x | 0,y / this.tileSize.y | 0);
+	}
+	,toWorldCoordinates: function(x,y) {
+		return new geom_Point2D(x * this.tileSize.x,y * this.tileSize.y);
 	}
 	,__class__: entities_World
 };
@@ -1484,6 +1577,11 @@ geom_Point2D.prototype = {
 		this.y = y;
 		return this;
 	}
+	,setFromPoint2D: function(p) {
+		this.x = p.x;
+		this.y = p.y;
+		return this;
+	}
 	,setX: function(x) {
 		this.x = x;
 		return this;
@@ -1495,6 +1593,16 @@ geom_Point2D.prototype = {
 	,equal: function(v) {
 		if(this.x == v.x) {
 			return this.y == v.y;
+		} else {
+			return false;
+		}
+	}
+	,floatEqual: function(v,epsilon) {
+		if(epsilon == null) {
+			epsilon = 0.0001;
+		}
+		if(math_MathExtensions.floatEqual(Math,this.x,v.x,epsilon)) {
+			return math_MathExtensions.floatEqual(Math,this.y,v.y,epsilon);
 		} else {
 			return false;
 		}
@@ -1542,6 +1650,76 @@ geom_Point2D.prototype = {
 		}
 	}
 	,__class__: geom_Point2D
+};
+var geom_Point2DInt = function(x,y) {
+	this.set(x,y);
+};
+geom_Point2DInt.__name__ = true;
+geom_Point2DInt.prototype = {
+	set: function(x,y) {
+		this.x = x;
+		this.y = y;
+		return this;
+	}
+	,setX: function(x) {
+		this.x = x;
+		return this;
+	}
+	,setY: function(y) {
+		this.y = y;
+		return this;
+	}
+	,equal: function(v) {
+		if(this.x == v.x) {
+			return this.y == v.y;
+		} else {
+			return false;
+		}
+	}
+	,clone: function() {
+		return new geom_Point2DInt(this.x,this.y);
+	}
+	,copyTo: function(v) {
+		v.x = this.x;
+		v.y = this.y;
+		return v;
+	}
+	,copyFrom: function(v) {
+		this.x = v.x;
+		this.y = v.y;
+		return this;
+	}
+	,add: function(v) {
+		this.x += v.x;
+		this.y += v.y;
+		return this;
+	}
+	,subtract: function(v) {
+		this.x -= v.x;
+		this.y -= v.y;
+		return this;
+	}
+	,multiply: function(a) {
+		this.x *= a;
+		this.y *= a;
+		return this;
+	}
+	,dot: function(v) {
+		return this.x * v.x + this.y * v.y;
+	}
+	,norm: function() {
+		return Math.sqrt(this.dot(this));
+	}
+	,normalize: function() {
+		var point = new geom_Point2D(this.x,this.y);
+		var norm = this.norm();
+		if(norm != 0) {
+			return point.multiply(1 / norm);
+		} else {
+			return point;
+		}
+	}
+	,__class__: geom_Point2DInt
 };
 var geom_Rectangle = function(x,y,width,height) {
 	this.x = x;
@@ -2048,7 +2226,7 @@ var physics_Physics = function(model) {
 };
 physics_Physics.__name__ = true;
 physics_Physics.prototype = {
-	update: function(deltaTime) {
+	fixedUpdate: function(deltaTime) {
 		var _g = 0;
 		var _g1 = this.model.getBodies();
 		while(_g < _g1.length) {
@@ -2057,18 +2235,6 @@ physics_Physics.prototype = {
 			body.velocity.add(body.acceleration);
 			this.model.move(body,body.position.clone().add(body.velocity));
 		}
-	}
-	,canMoveAbove: function() {
-		return false;
-	}
-	,canMoveBelow: function() {
-		return false;
-	}
-	,canMoveLeft: function() {
-		return false;
-	}
-	,canMoveRight: function() {
-		return false;
 	}
 	,__class__: physics_Physics
 };

@@ -1,6 +1,6 @@
 import geom.Rectangle;
 import entities.Hero;
-import entities.Enemy;
+import entities.Monster;
 import entities.World;
 import js.html.Element;
 import js.Browser;
@@ -11,7 +11,7 @@ class View {
   private var scene: Element;
   private var world: Element;
   private var tiles: Array<Element> = [];
-  private var enemies: Array<Element> = [];
+  private var monsters: Array<Element> = [];
   private var hero: Element;
   private var model: Model;
   private static inline var SVG_NS = "http://www.w3.org/2000/svg";
@@ -39,10 +39,10 @@ class View {
       this.tiles.push(tile);
     }
 
-    for (enemyModel in model.enemies) {
-      var enemy = this.createEnemy(enemyModel);
-      this.scene.appendChild(enemy);
-      this.enemies.push(enemy);
+    for (monsterModel in model.monsters) {
+      var monster = this.createMonster(monsterModel);
+      this.scene.appendChild(monster);
+      this.monsters.push(monster);
     }
 
     this.hero = this.createHero(model.hero);
@@ -62,15 +62,15 @@ class View {
       this.hero.setAttributeNS(null, "yy", this.model.hero.bounds.height / 2 + "px");
     }
 
-    for (index in 0...this.model.enemies.length) {
-      var enemyModel = this.model.enemies[index];
-      var enemyView = this.enemies[index];
-      enemyView.style.visibility = enemyModel.active ? "" : "hidden";
-      if (enemyModel.active) {
-        enemyView.setAttributeNS(null, "cx", enemyModel.position.x + enemyModel.bounds.width / 2 + "px");
-        enemyView.setAttributeNS(null, "cy", enemyModel.position.y + enemyModel.bounds.height / 2 + "px");
-        enemyView.setAttributeNS(null, "rx", enemyModel.bounds.width / 2 + "px");
-        enemyView.setAttributeNS(null, "yy", enemyModel.bounds.height / 2 + "px");
+    for (index in 0...this.model.monsters.length) {
+      var monsterModel = this.model.monsters[index];
+      var monsterView = this.monsters[index];
+      monsterView.style.visibility = monsterModel.active ? "" : "hidden";
+      if (monsterModel.active) {
+        monsterView.setAttributeNS(null, "cx", monsterModel.position.x + monsterModel.bounds.width / 2 + "px");
+        monsterView.setAttributeNS(null, "cy", monsterModel.position.y + monsterModel.bounds.height / 2 + "px");
+        monsterView.setAttributeNS(null, "rx", monsterModel.bounds.width / 2 + "px");
+        monsterView.setAttributeNS(null, "yy", monsterModel.bounds.height / 2 + "px");
       }
     }
   }
@@ -119,7 +119,7 @@ class View {
 
   private function createHero(hero: Hero) {
     return this.createElement('ellipse', [
-      "class" => "hero",
+      "class" => hero.kind,
       "cx" => '${hero.bounds.width / 2}px',
       "cy" => '${hero.bounds.height / 2}px',
       "rx" => '${hero.bounds.width / 2}px',
@@ -128,13 +128,13 @@ class View {
     ]);
   }
 
-  private function createEnemy(enemy: Enemy) {
+  private function createMonster(monster: Monster) {
     return this.createElement('ellipse', [
-      "class" => "enemy",
-      "cx" => '${enemy.bounds.width / 2}px',
-      "cy" => '${enemy.bounds.height / 2}px',
-      "rx" => '${enemy.bounds.width / 2}px',
-      "ry" => '${enemy.bounds.height / 2}px',
+      "class" => monster.kind,
+      "cx" => '${monster.bounds.width / 2}px',
+      "cy" => '${monster.bounds.height / 2}px',
+      "rx" => '${monster.bounds.width / 2}px',
+      "ry" => '${monster.bounds.height / 2}px',
       "fill" => "#cc0066"
     ]);
   }

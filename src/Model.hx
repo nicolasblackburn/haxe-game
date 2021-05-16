@@ -5,20 +5,20 @@ import physics.PhysicsModel;
 import geom.Rectangle;
 import geom.RectangleOperations.*;
 import entities.World;
-import entities.Enemy;
+import entities.Monster;
 import entities.Hero;
 
 class Model implements PhysicsModel {
   public var world: World;
   public var hero: Hero;
-  public var enemies: Array<Enemy>;
+  public var monsters: Array<Monster>;
 
   private var controller: Controller;
 
   public function new() {
     this.world = new World();
     this.hero = new Hero();
-    this.enemies = [for (_ in 0...10) new Enemy()];
+    this.monsters = [for (_ in 0...10) new Monster()];
   }
 
   public function setController(controller: Controller) {
@@ -48,34 +48,40 @@ class Model implements PhysicsModel {
       this.hero.bounds.height + 2 * this.world.tileSize.y
     );
 
-    for (enemy in this.enemies.slice(0, 4)) {
-      enemy.active = true;
+    for (monster in this.monsters.slice(0, 4)) {
+      monster.active = true;
 
-      enemy.position.x = (Std.int(Math.random() * (gridSize.x / 2 - 2)) + 1) 
+      monster.position.x = (Std.int(Math.random() * (gridSize.x / 2 - 2)) + 1) 
       * tileSize.x * 2;
-      enemy.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
+      monster.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
       * tileSize.y * 2;
   
-      while (!this.world.canMove(enemy, enemy.position) || overlap(heroRegion, enemy.bounds)) {
-        enemy.position.x = (Std.int(Math.random() * (gridSize.x / 2 - 2)) + 1) 
+      while (!this.world.canMove(monster, monster.position) || overlap(heroRegion, monster.bounds)) {
+        monster.position.x = (Std.int(Math.random() * (gridSize.x / 2 - 2)) + 1) 
         * tileSize.x * 2;
-        enemy.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
+        monster.position.y = (Std.int(Math.random() * (gridSize.y / 2 - 2)) + 1) 
         * tileSize.y * 2;
       }
     }
   }
 
-  public function update(deltaTime: Float) {
-    var gamepad = this.controller.gamepad;
-  
-    this.hero.velocity.set(gamepad.axes[0], gamepad.axes[1]).multiply(this.hero.maxSpeed);
+  public function fixedUpdate(deltaTime: Float) {
+    if (this.hero.active) {
+      this.hero.states.update();
+    }
+    
+    for (monster in this.monsters) {
+      if (monster.active) {
+        monster.states.update();
+      }
+    }
   }
 
   public function getBodies() {
     if (this.hero.active) {
-      return [cast (this.hero, Body)].concat(cast this.enemies.filter(e -> e.active));
+      return [cast (this.hero, Body)].concat(cast this.monsters.filter(e -> e.active));
     } else {
-      return cast this.enemies.filter(e -> e.active);
+      return cast this.monsters.filter(e -> e.active);
     }
   }
 

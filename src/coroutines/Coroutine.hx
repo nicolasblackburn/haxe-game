@@ -1,5 +1,3 @@
 package coroutines;
 
-interface Coroutine {
-  public function next(): Result;
-}
+typedef Coroutine = () -> Result
