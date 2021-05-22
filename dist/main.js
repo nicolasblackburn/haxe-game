@@ -683,12 +683,15 @@ var entities_Monster = function() {
 	entities_Entity.call(this,"monster");
 	this.active = false;
 	this.maxSpeed = 0.0666666666666666657;
-	this.states.add($bind(this,this.updateNormal));
+	this.wanderRate = 0.25;
+	this.seekRate = 0.25;
+	this.hungerRate = 0.25;
+	this.states.add($bind(this,this.updateIdle));
 };
 entities_Monster.__name__ = true;
 entities_Monster.__super__ = entities_Entity;
 entities_Monster.prototype = $extend(entities_Entity.prototype,{
-	updateNormal: function() {
+	updateIdle: function() {
 		var world = Controller.getInstance().model.world;
 		this.state = entities_MonsterState.Idle;
 		this.changeDirection();
@@ -703,9 +706,9 @@ entities_Monster.prototype = $extend(entities_Entity.prototype,{
 		var difference = this.target.clone().subtract(this.position);
 		var norm = difference.norm();
 		if(this.maxSpeed >= norm) {
+			this.velocity = difference;
 			return coroutines_Result.Terminate;
 		} else {
-			this.velocity = difference.normalize().multiply(this.maxSpeed);
 			return coroutines_Result.Continue;
 		}
 	}
@@ -713,36 +716,63 @@ entities_Monster.prototype = $extend(entities_Entity.prototype,{
 		return this.target.floatEqual(this.position);
 	}
 	,changeDirection: function() {
-		var world = Controller.getInstance().model.world;
+		var model = Controller.getInstance().model;
+		var world = model.world;
 		var oldTarget = this.target != null ? this.target.clone() : null;
+		var grid = oldTarget != null ? world.toGridCoordinates(oldTarget.x,oldTarget.y) : world.toGridCoordinates(this.position.x,this.position.y);
 		if(oldTarget != null) {
 			var direction = this.velocity.clone().normalize();
-			var grid = world.toGridCoordinates(oldTarget.x,oldTarget.y);
-			grid.add(new geom_Point2DInt((direction.x | 0) * 2,(direction.y | 0) * 2));
-			this.target = world.toWorldCoordinates(grid.x,grid.y);
+			var newGrid = grid.clone().add(new geom_Point2DInt((direction.x | 0) * 2,(direction.y | 0) * 2));
+			this.target = world.toWorldCoordinates(newGrid.x,newGrid.y);
 		}
-		if(this.target == null || !world.canMove(this,this.target) || Math.random() < 0.25) {
+		var hasSeeked = false;
+		if(Math.random() < this.seekRate) {
+			hasSeeked = true;
+			var gridDisplacement = new geom_Point2DInt(0,0);
+			var difference = model.hero.position.clone().subtract(this.position);
+			if(Math.abs(difference.x) <= Math.abs(difference.y)) {
+				gridDisplacement.x = 0;
+				gridDisplacement.y = 2;
+				if(difference.y < 0) {
+					gridDisplacement.y = -2;
+				}
+			} else {
+				gridDisplacement.x = 2;
+				gridDisplacement.y = 0;
+				if(difference.x < 0) {
+					gridDisplacement.x = -2;
+				}
+			}
+			var newGrid1 = grid.clone().add(gridDisplacement);
+			this.target = world.toWorldCoordinates(newGrid1.x,newGrid1.y);
+		}
+		if(this.target == null || !world.canMove(this,this.target) || !hasSeeked && Math.random() < this.wanderRate) {
 			while(true) {
-				var grid1 = oldTarget != null ? world.toGridCoordinates(oldTarget.x,oldTarget.y) : world.toGridCoordinates(this.position.x,this.position.y);
+				var newGrid2 = grid.clone();
 				switch(Math.random() * 4 | 0) {
 				case 0:
-					grid1.add(new geom_Point2DInt(2,0));
+					newGrid2.add(new geom_Point2DInt(2,0));
 					break;
 				case 1:
-					grid1.add(new geom_Point2DInt(0,2));
+					newGrid2.add(new geom_Point2DInt(0,2));
 					break;
 				case 2:
-					grid1.add(new geom_Point2DInt(-2,0));
+					newGrid2.add(new geom_Point2DInt(-2,0));
 					break;
 				case 3:
-					grid1.add(new geom_Point2DInt(0,-2));
+					newGrid2.add(new geom_Point2DInt(0,-2));
 					break;
 				}
-				this.target = world.toWorldCoordinates(grid1.x,grid1.y);
+				this.target = world.toWorldCoordinates(newGrid2.x,newGrid2.y);
 				if(!(!world.canMove(this,this.target))) {
 					break;
 				}
 			}
+		}
+		var oldDirection = oldTarget != null ? oldTarget.clone().subtract(this.position).normalize() : null;
+		var newDirection = this.target.clone().subtract(this.position).normalize();
+		if(oldDirection == null || !oldDirection.floatEqual(newDirection)) {
+			this.velocity = newDirection.multiply(this.maxSpeed);
 		}
 	}
 	,__class__: entities_Monster
