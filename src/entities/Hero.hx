@@ -5,7 +5,7 @@ import coroutines.Result;
 class Hero extends Entity {
   public function new() {
     super("hero");
-    this.maxSpeed = 1.5 * 32 / 8 / 60;
+    this.maxSpeed = 32 / 8 / 60;
 
     this.states.add(this.updateNormal);
   }

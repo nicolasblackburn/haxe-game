@@ -661,7 +661,7 @@ entities_Entity.prototype = {
 };
 var entities_Hero = function() {
 	entities_Entity.call(this,"hero");
-	this.maxSpeed = 0.1;
+	this.maxSpeed = 0.0666666666666666657;
 	this.states.add($bind(this,this.updateNormal));
 };
 entities_Hero.__name__ = true;
