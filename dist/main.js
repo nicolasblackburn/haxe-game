@@ -141,6 +141,7 @@ physics_PhysicsModel.prototype = {
 	__class__: physics_PhysicsModel
 };
 var Model = function() {
+	this.counts = 0;
 	this.world = new entities_World();
 	this.hero = new entities_Hero();
 	var _g = [];
@@ -155,6 +156,7 @@ var Model = function() {
 	_g.push(new entities_Monster());
 	_g.push(new entities_Monster());
 	this.monsters = _g;
+	this.logs = [];
 };
 Model.__name__ = true;
 Model.__interfaces__ = [physics_PhysicsModel];
@@ -239,12 +241,38 @@ Model.prototype = {
 	,move: function(body,position) {
 		var displacement = position.clone().subtract(body.position);
 		body.position.x += displacement.x;
+		this.snapToGridX(body,new geom_Point2DInt(1,1));
 		if(!this.world.canMove(body,body.position)) {
 			this.resolveCollisionX(body,displacement);
+			this.snapToGridX(body,new geom_Point2DInt(1,1));
 		}
 		body.position.y += displacement.y;
+		this.snapToGridY(body,new geom_Point2DInt(1,1));
 		if(!this.world.canMove(body,body.position)) {
 			this.resolveCollisionY(body,displacement);
+			this.snapToGridY(body,new geom_Point2DInt(1,1));
+		}
+	}
+	,snapToGridX: function(body,tileSize) {
+		var leftDiff = Math.abs(body.position.x % tileSize.x / tileSize.x);
+		var leftGrid = Math.floor(body.position.x / tileSize.x) * tileSize.x;
+		var rightDiff = Math.abs(body.position.x % tileSize.x / tileSize.x - 1);
+		var rightGrid = Math.ceil(body.position.x / tileSize.x) * tileSize.x;
+		if(leftDiff < rightDiff && Math.abs(leftGrid - body.position.x) < 0.00001) {
+			body.position.x = leftGrid;
+		} else if(leftDiff > rightDiff && Math.abs(rightGrid - body.position.x) < 0.00001) {
+			body.position.x = rightGrid;
+		}
+	}
+	,snapToGridY: function(body,tileSize) {
+		var topDiff = Math.abs(body.position.y % tileSize.y / tileSize.y);
+		var topGrid = Math.floor(body.position.y / tileSize.y) * tileSize.y;
+		var bottomDiff = Math.abs(body.position.y % tileSize.y / tileSize.y - 1);
+		var bottomGrid = Math.ceil(body.position.y / tileSize.y) * tileSize.y;
+		if(topDiff < bottomDiff && Math.abs(topGrid - body.position.y) < 0.00001) {
+			body.position.y = topGrid;
+		} else if(topDiff > bottomDiff && Math.abs(bottomGrid - body.position.y) < 0.00001) {
+			body.position.y = bottomGrid;
 		}
 	}
 	,resolveCollisionX: function(body,displacement) {
@@ -811,7 +839,11 @@ entities_World.prototype = {
 	}
 	,getTileIdAt: function(x,y) {
 		var gridCoordinates = this.toGridCoordinates(x,y);
-		return this.tileIds[gridCoordinates.x + (this.gridSize.x | 0) * gridCoordinates.y];
+		if(gridCoordinates.x < 0 || gridCoordinates.x >= (this.gridSize.x | 0) || gridCoordinates.y < 0 || gridCoordinates.y >= (this.gridSize.y | 0)) {
+			return 0;
+		} else {
+			return this.tileIds[gridCoordinates.x + (this.gridSize.x | 0) * gridCoordinates.y];
+		}
 	}
 	,toGridCoordinates: function(x,y) {
 		return new geom_Point2DInt(x / this.tileSize.x | 0,y / this.tileSize.y | 0);

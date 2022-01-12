@@ -69,7 +69,11 @@ class World {
 
   public function getTileIdAt(x: Float, y:  Float) {
     var gridCoordinates = this.toGridCoordinates(x, y);
-    return this.tileIds[gridCoordinates.x + Std.int(this.gridSize.x) * gridCoordinates.y];
+    if (gridCoordinates.x < 0 || gridCoordinates.x >= Std.int(this.gridSize.x) || gridCoordinates.y < 0 || gridCoordinates.y >= Std.int(this.gridSize.y)) {
+      return 0;
+    } else {
+      return this.tileIds[gridCoordinates.x + Std.int(this.gridSize.x) * gridCoordinates.y];
+    }
   }
 
   public function toGridCoordinates(x: Float, y: Float) {

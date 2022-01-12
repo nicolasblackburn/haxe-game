@@ -1,3 +1,5 @@
+import geom.Point2DInt;
+import js.html.svg.Number;
 import geom.Point2D;
 import js.html.Console;
 import physics.Body;
@@ -12,6 +14,8 @@ class Model implements PhysicsModel {
   public var world: World;
   public var hero: Hero;
   public var monsters: Array<Monster>;
+  public var logs: Array<String>;
+  public var counts: Int = 0;
 
   private var controller: Controller;
 
@@ -19,6 +23,7 @@ class Model implements PhysicsModel {
     this.world = new World();
     this.hero = new Hero();
     this.monsters = [for (_ in 0...10) new Monster()];
+    this.logs = [];
   }
 
   public function setController(controller: Controller) {
@@ -88,12 +93,43 @@ class Model implements PhysicsModel {
   public function move(body: Body, position: Point2D) {
     var displacement = position.clone().subtract(body.position);
     body.position.x += displacement.x;
+    this.snapToGridX(body, new Point2DInt(1, 1));
+
     if (!this.world.canMove(body, body.position)) {
       this.resolveCollisionX(body, displacement);
+      this.snapToGridX(body, new Point2DInt(1, 1));
     }
+
     body.position.y += displacement.y;
+    this.snapToGridY(body, new Point2DInt(1, 1));
+
     if (!this.world.canMove(body, body.position)) {
       this.resolveCollisionY(body, displacement);
+      this.snapToGridY(body, new Point2DInt(1, 1));
+    }
+  }
+
+  private function snapToGridX(body: Body, tileSize: Point2DInt) {
+    var leftDiff = Math.abs((body.position.x % tileSize.x) / tileSize.x - 0);
+    var leftGrid = Math.floor(body.position.x / tileSize.x) * tileSize.x;
+    var rightDiff = Math.abs((body.position.x % tileSize.x) / tileSize.x - 1);
+    var rightGrid = Math.ceil(body.position.x / tileSize.x) * tileSize.x;
+    if (leftDiff < rightDiff && Math.abs(leftGrid - body.position.x) < 0.00001) {
+      body.position.x = leftGrid;
+    } else if (leftDiff > rightDiff && Math.abs(rightGrid - body.position.x) < 0.00001) {
+      body.position.x = rightGrid;
+    }
+  }
+
+  private function snapToGridY(body: Body, tileSize: Point2DInt) {
+    var topDiff = Math.abs((body.position.y % tileSize.y) / tileSize.y - 0);
+    var topGrid = Math.floor(body.position.y / tileSize.y) * tileSize.y;
+    var bottomDiff = Math.abs((body.position.y % tileSize.y) / tileSize.y - 1);
+    var bottomGrid = Math.ceil(body.position.y / tileSize.y) * tileSize.y;
+    if (topDiff < bottomDiff && Math.abs(topGrid - body.position.y) < 0.00001) {
+      body.position.y = topGrid;
+    } else if (topDiff > bottomDiff && Math.abs(bottomGrid - body.position.y) < 0.00001) {
+      body.position.y = bottomGrid;
     }
   }
 
